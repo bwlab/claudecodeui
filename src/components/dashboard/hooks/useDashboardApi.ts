@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { authenticatedFetch } from '../../../utils/api';
 import type { Dashboard, Raccoglitore, DashboardViewMode, DashboardSortMode } from '../types/dashboard';
 
@@ -102,7 +102,7 @@ export function useDashboardApi() {
     });
   }, []);
 
-  return {
+  return useMemo(() => ({
     getDashboards,
     getDefaultDashboardId,
     getFullDashboard,
@@ -118,5 +118,11 @@ export function useDashboardApi() {
     assignProject,
     removeProject,
     reorderProjects,
-  };
+  }), [
+    getDashboards, getDefaultDashboardId, getFullDashboard,
+    createDashboard, updateDashboard, deleteDashboard,
+    reorderDashboards, setDefaultDashboard,
+    createRaccoglitore, updateRaccoglitore, deleteRaccoglitore, reorderRaccoglitori,
+    assignProject, removeProject, reorderProjects,
+  ]);
 }
