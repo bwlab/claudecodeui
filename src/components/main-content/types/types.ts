@@ -56,17 +56,23 @@ export type MainContentProps = {
   onBackToKanban: () => void;
   onShowSettings: () => void;
   externalMessageUpdate: number;
+  activeDashboardId: number | null;
+  onDashboardSelect: (id: number | null) => void;
+  projects: Project[];
+  onProjectSelect: (project: Project) => void;
 };
 
 export type MainContentHeaderProps = {
   activeTab: AppTab;
   setActiveTab: Dispatch<SetStateAction<AppTab>>;
-  selectedProject: Project;
+  selectedProject: Project | null;
   selectedSession: ProjectSession | null;
   shouldShowTasksTab: boolean;
   isMobile: boolean;
   onMenuClick: () => void;
   onBackToKanban?: () => void;
+  activeDashboardId: number | null;
+  onDashboardSelect: (id: number | null) => void;
 };
 
 export type MainContentStateViewProps = {

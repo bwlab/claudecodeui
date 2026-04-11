@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Sidebar from '../sidebar/view/Sidebar';
@@ -7,6 +7,7 @@ import { useWebSocket } from '../../contexts/WebSocketContext';
 import { useDeviceSettings } from '../../hooks/useDeviceSettings';
 import { useSessionProtection } from '../../hooks/useSessionProtection';
 import { useProjectsState } from '../../hooks/useProjectsState';
+import { useDashboardApi } from '../dashboard/hooks/useDashboardApi';
 
 export default function AppContent() {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export default function AppContent() {
   } = useSessionProtection();
 
   const {
+    projects,
     selectedProject,
     selectedSession,
     isNewSession,
@@ -42,6 +44,7 @@ export default function AppContent() {
     refreshProjectsSilently,
     handleNewSession,
     handleBackToKanban,
+    handleProjectSelect,
     sidebarSharedProps,
   } = useProjectsState({
     sessionId,
@@ -50,6 +53,24 @@ export default function AppContent() {
     isMobile,
     activeSessions,
   });
+
+  // Dashboard state
+  const dashboardApi = useDashboardApi();
+  const [activeDashboardId, setActiveDashboardId] = useState<number | null>(null);
+
+  useEffect(() => {
+    dashboardApi.getDefaultDashboardId().then((id) => {
+      if (id) setActiveDashboardId(id);
+    });
+  }, [dashboardApi]);
+
+  const handleDashboardSelect = useCallback((id: number | null) => {
+    setActiveDashboardId(id);
+    if (id !== null) {
+      // When entering a dashboard, clear session state
+      handleBackToKanban();
+    }
+  }, [handleBackToKanban]);
 
   useEffect(() => {
     // Expose a non-blocking refresh for chat/session flows.
@@ -127,11 +148,11 @@ export default function AppContent() {
 
   return (
     <div className="fixed inset-0 flex bg-background">
-      {!isMobile ? (
+      {!isMobile && !activeDashboardId ? (
         <div className="h-full flex-shrink-0 border-r border-border/50">
           <Sidebar {...sidebarSharedProps} />
         </div>
-      ) : (
+      ) : !activeDashboardId && (
         <div
           className={`fixed inset-0 z-50 flex transition-all duration-150 ease-out ${sidebarOpen ? 'visible opacity-100' : 'invisible opacity-0'
             }`}
@@ -185,6 +206,10 @@ export default function AppContent() {
           onBackToKanban={handleBackToKanban}
           onShowSettings={() => setShowSettings(true)}
           externalMessageUpdate={externalMessageUpdate}
+          activeDashboardId={activeDashboardId}
+          onDashboardSelect={handleDashboardSelect}
+          projects={projects}
+          onProjectSelect={(project) => { setActiveDashboardId(null); handleProjectSelect(project); }}
         />
       </div>
 

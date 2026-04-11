@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { LayoutGrid } from 'lucide-react';
+import DashboardSelector from '../../../dashboard/view/DashboardSelector';
 import type { MainContentHeaderProps } from '../../types/types';
 import MobileMenuButton from './MobileMenuButton';
 import MainContentTabSwitcher from './MainContentTabSwitcher';
@@ -14,6 +15,8 @@ export default function MainContentHeader({
   isMobile,
   onMenuClick,
   onBackToKanban,
+  activeDashboardId,
+  onDashboardSelect,
 }: MainContentHeaderProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -40,13 +43,17 @@ export default function MainContentHeader({
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {isMobile && <MobileMenuButton onMenuClick={onMenuClick} />}
-          <MainContentTitle
-            activeTab={activeTab}
-            selectedProject={selectedProject}
-            selectedSession={selectedSession}
-            shouldShowTasksTab={shouldShowTasksTab}
-          />
+          {selectedProject && (
+            <MainContentTitle
+              activeTab={activeTab}
+              selectedProject={selectedProject}
+              selectedSession={selectedSession}
+              shouldShowTasksTab={shouldShowTasksTab}
+            />
+          )}
         </div>
+
+        <DashboardSelector activeDashboardId={activeDashboardId} onDashboardSelect={onDashboardSelect} />
 
         {onBackToKanban && (
           <button

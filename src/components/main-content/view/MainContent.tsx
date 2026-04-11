@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import ChatInterface from '../../chat/view/ChatInterface';
 import SessionKanban from '../../session-kanban/view/SessionKanban';
+import DashboardView from '../../dashboard/view/DashboardView';
 import FileTree from '../../file-tree/view/FileTree';
 import StandaloneShell from '../../standalone-shell/view/StandaloneShell';
 import GitPanel from '../../git-panel/view/GitPanel';
@@ -52,6 +53,10 @@ function MainContent({
   onBackToKanban,
   onShowSettings,
   externalMessageUpdate,
+  activeDashboardId,
+  onDashboardSelect,
+  projects,
+  onProjectSelect,
 }: MainContentProps) {
   const { preferences } = useUiPreferences();
   const { autoExpandTools, showRawParameters, showThinking, autoScrollToBottom, sendByCtrlEnter } = preferences;
@@ -95,7 +100,7 @@ function MainContent({
     return <MainContentStateView mode="loading" isMobile={isMobile} onMenuClick={onMenuClick} />;
   }
 
-  if (!selectedProject) {
+  if (!selectedProject && !activeDashboardId) {
     return <MainContentStateView mode="empty" isMobile={isMobile} onMenuClick={onMenuClick} />;
   }
 
@@ -110,9 +115,21 @@ function MainContent({
         isMobile={isMobile}
         onMenuClick={onMenuClick}
         onBackToKanban={(selectedSession || isNewSession) ? onBackToKanban : undefined}
+        activeDashboardId={activeDashboardId}
+        onDashboardSelect={onDashboardSelect}
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
+        {activeDashboardId ? (
+          <div className="flex-1 overflow-hidden">
+            <DashboardView
+              dashboardId={activeDashboardId}
+              projects={projects}
+              onProjectClick={onProjectSelect}
+            />
+          </div>
+        ) : (
+        <>
         <div className={`flex min-h-0 min-w-[200px] flex-col overflow-hidden ${editorExpanded ? 'hidden' : ''} flex-1`}>
           <div className={`h-full ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
             <ErrorBoundary showDetails>
@@ -144,7 +161,7 @@ function MainContent({
                 />
               ) : (
                 <SessionKanban
-                  project={selectedProject}
+                  project={selectedProject!}
                   onSessionClick={(session) => onNavigateToSession(session.id)}
                   onNewSession={onNewSession}
                 />
@@ -190,19 +207,23 @@ function MainContent({
           )}
         </div>
 
-        <EditorSidebar
-          editingFile={editingFile}
-          isMobile={isMobile}
-          editorExpanded={editorExpanded}
-          editorWidth={editorWidth}
-          hasManualWidth={hasManualWidth}
-          resizeHandleRef={resizeHandleRef}
-          onResizeStart={handleResizeStart}
-          onCloseEditor={handleCloseEditor}
-          onToggleEditorExpand={handleToggleEditorExpand}
-          projectPath={selectedProject.path}
-          fillSpace={activeTab === 'files'}
-        />
+        {selectedProject && (
+          <EditorSidebar
+            editingFile={editingFile}
+            isMobile={isMobile}
+            editorExpanded={editorExpanded}
+            editorWidth={editorWidth}
+            hasManualWidth={hasManualWidth}
+            resizeHandleRef={resizeHandleRef}
+            onResizeStart={handleResizeStart}
+            onCloseEditor={handleCloseEditor}
+            onToggleEditorExpand={handleToggleEditorExpand}
+            projectPath={selectedProject.path}
+            fillSpace={activeTab === 'files'}
+          />
+        )}
+        </>
+        )}
       </div>
     </div>
   );

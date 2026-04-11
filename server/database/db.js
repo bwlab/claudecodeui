@@ -191,6 +191,44 @@ const runMigrations = () => {
       FOREIGN KEY (label_id) REFERENCES session_labels(id) ON DELETE CASCADE
     )`);
 
+    // Dashboard tables
+    db.exec(`CREATE TABLE IF NOT EXISTS dashboards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      is_default BOOLEAN NOT NULL DEFAULT 0,
+      sort_mode TEXT NOT NULL DEFAULT 'alpha',
+      view_mode TEXT NOT NULL DEFAULT 'kanban',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_dashboards_user ON dashboards(user_id)');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS dashboard_raccoglitori (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      dashboard_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#3b82f6',
+      icon TEXT NOT NULL DEFAULT 'Folder',
+      notes TEXT DEFAULT '',
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_raccoglitori_dashboard ON dashboard_raccoglitori(dashboard_id)');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS dashboard_project_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      raccoglitore_id INTEGER NOT NULL,
+      project_name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (raccoglitore_id) REFERENCES dashboard_raccoglitori(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_dpa_unique ON dashboard_project_assignments(raccoglitore_id, project_name)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_dpa_raccoglitore ON dashboard_project_assignments(raccoglitore_id)');
+
     console.log('Database migrations completed successfully');
   } catch (error) {
     console.error('Error running migrations:', error.message);
@@ -777,6 +815,158 @@ const kanbanDb = {
   },
 };
 
+const dashboardDb = {
+  // --- Dashboard CRUD ---
+  getDashboards: (userId) => {
+    return db.prepare(
+      'SELECT id, user_id, name, position, is_default, sort_mode, view_mode FROM dashboards WHERE user_id = ? ORDER BY position'
+    ).all(userId);
+  },
+
+  createDashboard: (userId, name) => {
+    const maxPos = db.prepare(
+      'SELECT COALESCE(MAX(position), -1) as maxPos FROM dashboards WHERE user_id = ?'
+    ).get(userId);
+    const position = (maxPos?.maxPos ?? -1) + 1;
+    const result = db.prepare(
+      'INSERT INTO dashboards (user_id, name, position) VALUES (?, ?, ?)'
+    ).run(userId, name, position);
+    return { id: result.lastInsertRowid, user_id: userId, name, position, is_default: 0, sort_mode: 'alpha', view_mode: 'kanban' };
+  },
+
+  updateDashboard: (id, userId, updates) => {
+    const fields = [];
+    const values = [];
+    for (const key of ['name', 'sort_mode', 'view_mode']) {
+      if (updates[key] !== undefined) {
+        fields.push(`${key} = ?`);
+        values.push(updates[key]);
+      }
+    }
+    if (fields.length === 0) return;
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id, userId);
+    db.prepare(`UPDATE dashboards SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`).run(...values);
+  },
+
+  deleteDashboard: (id, userId) => {
+    db.prepare('DELETE FROM dashboards WHERE id = ? AND user_id = ?').run(id, userId);
+  },
+
+  reorderDashboards: (userId, dashboardIds) => {
+    const stmt = db.prepare('UPDATE dashboards SET position = ? WHERE id = ? AND user_id = ?');
+    const transaction = db.transaction((ids) => {
+      ids.forEach((id, index) => stmt.run(index, id, userId));
+    });
+    transaction(dashboardIds);
+  },
+
+  setDefaultDashboard: (userId, dashboardId) => {
+    const transaction = db.transaction(() => {
+      db.prepare('UPDATE dashboards SET is_default = 0 WHERE user_id = ?').run(userId);
+      if (dashboardId) {
+        db.prepare('UPDATE dashboards SET is_default = 1 WHERE id = ? AND user_id = ?').run(dashboardId, userId);
+      }
+    });
+    transaction();
+  },
+
+  getDefaultDashboard: (userId) => {
+    return db.prepare(
+      'SELECT id FROM dashboards WHERE user_id = ? AND is_default = 1 LIMIT 1'
+    ).get(userId);
+  },
+
+  // --- Raccoglitori CRUD ---
+  getRaccoglitori: (dashboardId) => {
+    return db.prepare(
+      'SELECT id, dashboard_id, name, color, icon, notes, position FROM dashboard_raccoglitori WHERE dashboard_id = ? ORDER BY position'
+    ).all(dashboardId);
+  },
+
+  createRaccoglitore: (dashboardId, { name, color = '#3b82f6', icon = 'Folder', notes = '' }) => {
+    const maxPos = db.prepare(
+      'SELECT COALESCE(MAX(position), -1) as maxPos FROM dashboard_raccoglitori WHERE dashboard_id = ?'
+    ).get(dashboardId);
+    const position = (maxPos?.maxPos ?? -1) + 1;
+    const result = db.prepare(
+      'INSERT INTO dashboard_raccoglitori (dashboard_id, name, color, icon, notes, position) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(dashboardId, name, color, icon, notes, position);
+    return { id: result.lastInsertRowid, dashboard_id: dashboardId, name, color, icon, notes, position };
+  },
+
+  updateRaccoglitore: (id, updates) => {
+    const fields = [];
+    const values = [];
+    for (const key of ['name', 'color', 'icon', 'notes']) {
+      if (updates[key] !== undefined) {
+        fields.push(`${key} = ?`);
+        values.push(updates[key]);
+      }
+    }
+    if (fields.length === 0) return;
+    values.push(id);
+    db.prepare(`UPDATE dashboard_raccoglitori SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  },
+
+  deleteRaccoglitore: (id) => {
+    db.prepare('DELETE FROM dashboard_raccoglitori WHERE id = ?').run(id);
+  },
+
+  reorderRaccoglitori: (dashboardId, raccoglitoreIds) => {
+    const stmt = db.prepare('UPDATE dashboard_raccoglitori SET position = ? WHERE id = ? AND dashboard_id = ?');
+    const transaction = db.transaction((ids) => {
+      ids.forEach((id, index) => stmt.run(index, id, dashboardId));
+    });
+    transaction(raccoglitoreIds);
+  },
+
+  // --- Project assignments ---
+  getAssignments: (dashboardId) => {
+    return db.prepare(`
+      SELECT dpa.id, dpa.raccoglitore_id, dpa.project_name, dpa.position
+      FROM dashboard_project_assignments dpa
+      JOIN dashboard_raccoglitori dr ON dpa.raccoglitore_id = dr.id
+      WHERE dr.dashboard_id = ?
+      ORDER BY dpa.position
+    `).all(dashboardId);
+  },
+
+  assignProject: (raccoglitoreId, projectName, position = 0) => {
+    db.prepare(`
+      INSERT INTO dashboard_project_assignments (raccoglitore_id, project_name, position)
+      VALUES (?, ?, ?)
+      ON CONFLICT(raccoglitore_id, project_name) DO UPDATE SET position = excluded.position
+    `).run(raccoglitoreId, projectName, position);
+  },
+
+  removeProject: (raccoglitoreId, projectName) => {
+    db.prepare(
+      'DELETE FROM dashboard_project_assignments WHERE raccoglitore_id = ? AND project_name = ?'
+    ).run(raccoglitoreId, projectName);
+  },
+
+  reorderProjects: (raccoglitoreId, projectNames) => {
+    const stmt = db.prepare('UPDATE dashboard_project_assignments SET position = ? WHERE raccoglitore_id = ? AND project_name = ?');
+    const transaction = db.transaction((names) => {
+      names.forEach((name, index) => stmt.run(index, raccoglitoreId, name));
+    });
+    transaction(projectNames);
+  },
+
+  // --- Full dashboard load ---
+  getFullDashboard: (dashboardId, userId) => {
+    const dashboard = db.prepare(
+      'SELECT id, user_id, name, position, is_default, sort_mode, view_mode FROM dashboards WHERE id = ? AND user_id = ?'
+    ).get(dashboardId, userId);
+    if (!dashboard) return null;
+
+    const raccoglitori = dashboardDb.getRaccoglitori(dashboardId);
+    const assignments = dashboardDb.getAssignments(dashboardId);
+    return { dashboard, raccoglitori, assignments };
+  },
+};
+
 // Backward compatibility - keep old names pointing to new system
 const githubTokensDb = {
   createGithubToken: (userId, tokenName, githubToken, description = null) => {
@@ -808,5 +998,6 @@ export {
   applyCustomSessionNames,
   appConfigDb,
   kanbanDb,
+  dashboardDb,
   githubTokensDb // Backward compatibility
 };
