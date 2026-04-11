@@ -54,6 +54,7 @@ function MainContent({
   onShowSettings,
   externalMessageUpdate,
   activeDashboardId,
+  dashboardChecked,
   onDashboardSelect,
   projects,
   onProjectSelect,
@@ -96,7 +97,7 @@ function MainContent({
     }
   }, [shouldShowTasksTab, activeTab, setActiveTab]);
 
-  if (isLoading) {
+  if (isLoading || !dashboardChecked) {
     return <MainContentStateView mode="loading" isMobile={isMobile} onMenuClick={onMenuClick} />;
   }
 

@@ -57,6 +57,7 @@ export type MainContentProps = {
   onShowSettings: () => void;
   externalMessageUpdate: number;
   activeDashboardId: number | null;
+  dashboardChecked: boolean;
   onDashboardSelect: (id: number | null) => void;
   projects: Project[];
   onProjectSelect: (project: Project) => void;

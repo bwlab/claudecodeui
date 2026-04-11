@@ -94,6 +94,7 @@
     "git": "Git",
     "apiTokens": "API & Tokens",
     "tasks": "Tasks",
+    "dashboards": "Dashboards",
     "notifications": "Notifications",
     "plugins": "Plugins",
     "about": "About"

@@ -57,10 +57,12 @@ export default function AppContent() {
   // Dashboard state
   const dashboardApi = useDashboardApi();
   const [activeDashboardId, setActiveDashboardId] = useState<number | null>(null);
+  const [dashboardChecked, setDashboardChecked] = useState(false);
 
   useEffect(() => {
     dashboardApi.getDefaultDashboardId().then((id) => {
       if (id) setActiveDashboardId(id);
+      setDashboardChecked(true);
     });
   }, [dashboardApi]);
 
@@ -207,6 +209,7 @@ export default function AppContent() {
           onShowSettings={() => setShowSettings(true)}
           externalMessageUpdate={externalMessageUpdate}
           activeDashboardId={activeDashboardId}
+          dashboardChecked={dashboardChecked}
           onDashboardSelect={handleDashboardSelect}
           projects={projects}
           onProjectSelect={(project) => { setActiveDashboardId(null); handleProjectSelect(project); }}

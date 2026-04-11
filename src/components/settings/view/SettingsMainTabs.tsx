@@ -20,6 +20,7 @@ const TAB_CONFIG: MainTabConfig[] = [
   { id: 'git', labelKey: 'mainTabs.git', icon: GitBranch },
   { id: 'api', labelKey: 'mainTabs.apiTokens', icon: Key },
   { id: 'tasks', labelKey: 'mainTabs.tasks' },
+  { id: 'dashboards', labelKey: 'mainTabs.dashboards' },
   { id: 'notifications', labelKey: 'mainTabs.notifications' },
   { id: 'plugins', labelKey: 'mainTabs.plugins', icon: Puzzle },
   { id: 'about', labelKey: 'mainTabs.about', icon: Info },
