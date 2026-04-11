@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Sidebar from '../sidebar/view/Sidebar';
@@ -58,6 +58,7 @@ export default function AppContent() {
   const dashboardApi = useDashboardApi();
   const [activeDashboardId, setActiveDashboardId] = useState<number | null>(null);
   const [dashboardChecked, setDashboardChecked] = useState(false);
+  const [singleProjectMode, setSingleProjectMode] = useState(false);
 
   useEffect(() => {
     dashboardApi.getDefaultDashboardId().then((id) => {
@@ -148,11 +149,19 @@ export default function AppContent() {
     }
   }, [isConnected, selectedSession?.id, sendMessage]);
 
+  const filteredSidebarProps = useMemo(() => {
+    if (!singleProjectMode || !selectedProject) return sidebarSharedProps;
+    return {
+      ...sidebarSharedProps,
+      projects: projects.filter((p) => p.name === selectedProject.name),
+    };
+  }, [singleProjectMode, selectedProject, sidebarSharedProps, projects]);
+
   return (
     <div className="fixed inset-0 flex bg-background">
       {!isMobile && !activeDashboardId ? (
         <div className="h-full flex-shrink-0 border-r border-border/50">
-          <Sidebar {...sidebarSharedProps} />
+          <Sidebar {...filteredSidebarProps} singleProjectMode={singleProjectMode} onToggleAllProjects={() => setSingleProjectMode(false)} />
         </div>
       ) : !activeDashboardId && (
         <div
@@ -178,7 +187,7 @@ export default function AppContent() {
             onClick={(event) => event.stopPropagation()}
             onTouchStart={(event) => event.stopPropagation()}
           >
-            <Sidebar {...sidebarSharedProps} />
+            <Sidebar {...filteredSidebarProps} singleProjectMode={singleProjectMode} onToggleAllProjects={() => setSingleProjectMode(false)} />
           </div>
         </div>
       )}
@@ -212,7 +221,7 @@ export default function AppContent() {
           dashboardChecked={dashboardChecked}
           onDashboardSelect={handleDashboardSelect}
           projects={projects}
-          onProjectSelect={(project) => { setActiveDashboardId(null); handleProjectSelect(project); }}
+          onProjectSelect={(project) => { setActiveDashboardId(null); setSingleProjectMode(true); handleProjectSelect(project); }}
         />
       </div>
 

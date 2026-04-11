@@ -38,6 +38,8 @@ export type SidebarProps = {
   settingsInitialTab: string;
   onCloseSettings: () => void;
   isMobile: boolean;
+  singleProjectMode?: boolean;
+  onToggleAllProjects?: () => void;
 };
 
 export type SessionViewModel = {

@@ -35,6 +35,8 @@ function Sidebar({
   settingsInitialTab,
   onCloseSettings,
   isMobile,
+  singleProjectMode,
+  onToggleAllProjects,
 }: SidebarProps) {
   const { t } = useTranslation(['sidebar', 'common']);
   const { isPWA } = useDeviceSettings({ trackMobile: false });
@@ -218,6 +220,20 @@ function Sidebar({
         />
       ) : (
         <>
+          {singleProjectMode && onToggleAllProjects && (
+            <div className="border-b border-border/50 px-3 py-2">
+              <button
+                type="button"
+                onClick={onToggleAllProjects}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-border/60 bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                Tutti i progetti
+              </button>
+            </div>
+          )}
           <SidebarContent
             isPWA={isPWA}
             isMobile={isMobile}
