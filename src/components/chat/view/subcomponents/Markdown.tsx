@@ -124,7 +124,7 @@ const markdownComponents = {
     </blockquote>
   ),
   a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
-    <a href={href} className="text-blue-600 hover:underline dark:text-blue-400" target="_blank" rel="noopener noreferrer">
+    <a href={href} className="text-primary hover:underline dark:text-primary" target="_blank" rel="noopener noreferrer">
       {children}
     </a>
   ),

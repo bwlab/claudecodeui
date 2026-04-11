@@ -235,7 +235,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                   <button
                     onClick={handleNextStep}
                     disabled={!isCurrentStepValid || isSubmitting}
-                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+                    className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-white transition-colors duration-200 hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-primary"
                   >
                     {isSubmitting ? (
                       <>

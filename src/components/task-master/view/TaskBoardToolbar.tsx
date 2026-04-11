@@ -149,7 +149,7 @@ export default function TaskBoardToolbar({
             className={cn(
               'flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors',
               showFilters
-                ? 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                ? 'bg-primary/5 dark:bg-primary border-primary/20 dark:border-primary/20 text-primary dark:text-primary'
                 : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
             )}
           >
@@ -162,7 +162,7 @@ export default function TaskBoardToolbar({
             <>
               <button
                 onClick={onOpenHelp}
-                className="rounded-lg border border-gray-300 p-2 text-gray-600 hover:bg-gray-100 hover:text-blue-600 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                className="rounded-lg border border-gray-300 p-2 text-gray-600 hover:bg-gray-100 hover:text-primary dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-primary"
                 title={t('buttons.help')}
               >
                 <HelpCircle className="h-4 w-4" />
@@ -232,7 +232,7 @@ export default function TaskBoardToolbar({
               {(hasTaskMasterConfigured || totalTaskCount > 0) && (
                 <button
                   onClick={onOpenCreateTask}
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 font-medium text-white hover:bg-blue-700"
+                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 font-medium text-white hover:bg-primary/90"
                   title={t('buttons.addTask')}
                 >
                   <Plus className="h-4 w-4" />

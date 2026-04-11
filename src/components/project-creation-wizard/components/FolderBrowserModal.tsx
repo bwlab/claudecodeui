@@ -101,8 +101,8 @@ export default function FolderBrowserModal({
       <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-lg border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
         <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
-              <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/50">
+              <FolderOpen className="h-4 w-4 text-primary dark:text-primary" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Select Folder</h3>
           </div>
@@ -112,7 +112,7 @@ export default function FolderBrowserModal({
               onClick={() => setShowHiddenFolders((previous) => !previous)}
               className={`rounded-md p-2 transition-colors ${
                 showHiddenFolders
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                  ? 'bg-primary/5 text-primary dark:bg-primary/30 dark:text-primary'
                   : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300'
               }`}
               title={showHiddenFolders ? 'Hide hidden folders' : 'Show hidden folders'}
@@ -123,7 +123,7 @@ export default function FolderBrowserModal({
               onClick={() => setShowNewFolderInput((previous) => !previous)}
               className={`rounded-md p-2 transition-colors ${
                 showNewFolderInput
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                  ? 'bg-primary/5 text-primary dark:bg-primary/30 dark:text-primary'
                   : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300'
               }`}
               title="Create new folder"
@@ -140,7 +140,7 @@ export default function FolderBrowserModal({
         </div>
 
         {showNewFolderInput && (
-          <div className="border-b border-gray-200 bg-blue-50 px-4 py-3 dark:border-gray-700 dark:bg-blue-900/20">
+          <div className="border-b border-gray-200 bg-primary/5 px-4 py-3 dark:border-gray-700 dark:bg-primary/20">
             <div className="flex items-center gap-2">
               <Input
                 type="text"
@@ -206,7 +206,7 @@ export default function FolderBrowserModal({
                       onClick={() => loadFolders(folder.path)}
                       className="flex flex-1 items-center gap-3 rounded-lg px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
-                      <FolderPlus className="h-5 w-5 text-blue-500" />
+                      <FolderPlus className="h-5 w-5 text-primary" />
                       <span className="font-medium text-gray-900 dark:text-white">
                         {folder.name}
                       </span>

@@ -30,7 +30,7 @@ export default function NotificationsSettingsTab({
     <div className="space-y-6 md:space-y-8">
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Bell className="w-5 h-5 text-blue-600" />
+          <Bell className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-medium text-foreground">{t('notifications.title')}</h3>
         </div>
         <p className="text-sm text-muted-foreground">{t('notifications.description')}</p>
@@ -57,7 +57,7 @@ export default function NotificationsSettingsTab({
               className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 isPushSubscribed
                   ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
+                  : 'bg-primary text-white hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary'
               }`}
             >
               {isPushLoading ? (

@@ -131,9 +131,9 @@ export default function FileTree({ selectedProject, onFileOpen }: FileTreeProps)
     >
       {/* Drag overlay */}
       {upload.isDragOver && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-blue-500 bg-blue-500/10">
+        <div className="absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-primary bg-primary/10">
           <div className="flex items-center gap-3 rounded-lg bg-background/95 px-6 py-4 shadow-lg">
-            <Upload className="h-6 w-6 text-blue-500" />
+            <Upload className="h-6 w-6 text-primary" />
             <span className="text-sm font-medium">{t('fileTree.dropToUpload', 'Drop files to upload')}</span>
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function FileTree({ selectedProject, onFileOpen }: FileTreeProps)
             style={{ paddingLeft: `${(operations.newItemParent.split('/').length - 1) * 16 + 4}px` }}
           >
             {operations.newItemType === 'directory' ? (
-              <Folder className={cn(ICON_SIZE_CLASS, 'text-blue-500')} />
+              <Folder className={cn(ICON_SIZE_CLASS, 'text-primary')} />
             ) : (
               <span className="ml-[18px]">{renderFileIcon(operations.newItemName)}</span>
             )}

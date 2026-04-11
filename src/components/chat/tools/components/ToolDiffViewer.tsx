@@ -49,7 +49,7 @@ export const ToolDiffViewer: React.FC<ToolDiffViewerProps> = ({
         {onFileClick ? (
           <button
             onClick={onFileClick}
-            className="cursor-pointer truncate font-mono text-[11px] text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            className="cursor-pointer truncate font-mono text-[11px] text-primary transition-colors hover:text-primary dark:text-primary dark:hover:text-primary"
           >
             {filePath}
           </button>

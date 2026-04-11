@@ -56,7 +56,7 @@ export default function CodeEditorHeader({
           <div className="flex min-w-0 items-center gap-2">
             <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">{file.name}</h3>
             {file.diffInfo && (
-              <span className="shrink-0 whitespace-nowrap rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900 dark:text-blue-300">
+              <span className="shrink-0 whitespace-nowrap rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary dark:bg-primary dark:text-primary">
                 {labels.showingChanges}
               </span>
             )}
@@ -73,7 +73,7 @@ export default function CodeEditorHeader({
             onClick={onToggleMarkdownPreview}
             className={`flex items-center justify-center rounded-md p-1.5 transition-colors ${
               markdownPreview
-                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                ? 'bg-primary/5 text-primary dark:bg-primary/30 dark:text-primary'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
             }`}
             title={markdownPreview ? labels.editMarkdown : labels.previewMarkdown}

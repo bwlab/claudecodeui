@@ -244,15 +244,15 @@ function ClaudePermissions({
         </div>
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-        <h4 className="mb-2 font-medium text-blue-900 dark:text-blue-100">
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 dark:border-primary/20 dark:bg-primary/20">
+        <h4 className="mb-2 font-medium text-foreground dark:text-muted-foreground">
           {t('permissions.toolExamples.title')}
         </h4>
-        <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
-          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800">"Bash(git log:*)"</code> {t('permissions.toolExamples.bashGitLog')}</li>
-          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800">"Bash(git diff:*)"</code> {t('permissions.toolExamples.bashGitDiff')}</li>
-          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800">"Write"</code> {t('permissions.toolExamples.write')}</li>
-          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800">"Bash(rm:*)"</code> {t('permissions.toolExamples.bashRm')}</li>
+        <ul className="space-y-1 text-sm text-foreground dark:text-muted-foreground">
+          <li><code className="rounded bg-primary/10 px-1 dark:bg-primary">"Bash(git log:*)"</code> {t('permissions.toolExamples.bashGitLog')}</li>
+          <li><code className="rounded bg-primary/10 px-1 dark:bg-primary">"Bash(git diff:*)"</code> {t('permissions.toolExamples.bashGitDiff')}</li>
+          <li><code className="rounded bg-primary/10 px-1 dark:bg-primary">"Write"</code> {t('permissions.toolExamples.write')}</li>
+          <li><code className="rounded bg-primary/10 px-1 dark:bg-primary">"Bash(rm:*)"</code> {t('permissions.toolExamples.bashRm')}</li>
         </ul>
       </div>
 

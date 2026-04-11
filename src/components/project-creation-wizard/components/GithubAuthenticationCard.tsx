@@ -20,7 +20,7 @@ const getModeClassName = (mode: TokenMode, selectedMode: TokenMode) =>
     mode === selectedMode
       ? mode === 'none'
         ? 'bg-green-500 text-white'
-        : 'bg-blue-500 text-white'
+        : 'bg-primary text-white'
       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
   }`;
 
@@ -129,8 +129,8 @@ export default function GithubAuthenticationCard({
 
       {!loadingTokens && availableTokens.length === 0 && (
         <div className="space-y-4">
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 dark:border-primary/20 dark:bg-primary/20">
+            <p className="text-sm text-foreground dark:text-muted-foreground">
               {t('projectWizard.step2.publicRepoInfo')}
             </p>
           </div>

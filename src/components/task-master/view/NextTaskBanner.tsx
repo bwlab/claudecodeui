@@ -78,16 +78,16 @@ export default function NextTaskBanner({ onShowAllTasks = null, onStartTask = nu
   if (!hasTasks && !hasTaskMaster) {
     return (
       <>
-        <div className={cn('bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4', className)}>
+        <div className={cn('bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20 rounded-lg p-3 mb-4', className)}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <List className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <List className="h-4 w-4 text-primary dark:text-primary" />
               <p className="text-sm font-medium text-gray-900 dark:text-white">TaskMaster AI is not configured</p>
             </div>
 
             <button
               onClick={() => setShowSetupModal(true)}
-              className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs text-white transition-colors hover:bg-blue-700"
+              className="flex items-center gap-1 rounded bg-primary px-2 py-1 text-xs text-white transition-colors hover:bg-primary/90"
             >
               <Terminal className="h-3 w-3" />
               Initialize
@@ -96,14 +96,14 @@ export default function NextTaskBanner({ onShowAllTasks = null, onStartTask = nu
 
           <button
             onClick={() => setShowSetupDetails((current) => !current)}
-            className="mt-2 flex items-center gap-1 text-xs text-blue-700 hover:underline dark:text-blue-300"
+            className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline dark:text-primary"
           >
             <Settings className="h-3 w-3" />
             {showSetupDetails ? 'Hide details' : 'What is TaskMaster?'}
           </button>
 
           {showSetupDetails && (
-            <div className="mt-3 space-y-1 text-xs text-blue-900 dark:text-blue-100">
+            <div className="mt-3 space-y-1 text-xs text-foreground dark:text-muted-foreground">
               <p>- AI-powered task management with dependencies and subtasks.</p>
               <p>- PRD-driven task generation for faster project bootstrapping.</p>
               <p>- Kanban and list views for day-to-day execution.</p>
@@ -128,8 +128,8 @@ export default function NextTaskBanner({ onShowAllTasks = null, onStartTask = nu
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center gap-2">
-                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50">
-                  <Target className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/50">
+                  <Target className="h-3 w-3 text-primary dark:text-primary" />
                 </div>
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Task {nextTask.id}</span>
                 <PriorityIndicator priority={nextTask.priority} />
@@ -140,7 +140,7 @@ export default function NextTaskBanner({ onShowAllTasks = null, onStartTask = nu
             <div className="flex flex-shrink-0 items-center gap-1">
               <button
                 onClick={() => onStartTask?.()}
-                className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
               >
                 <Play className="h-3 w-3" />
                 Start Task

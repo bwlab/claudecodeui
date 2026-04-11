@@ -31,7 +31,7 @@ export default function QuickSettingsHandle({
 
   const placementClass = isOpen ? 'right-64' : 'right-0';
   const borderClass = isDragging
-    ? 'border-blue-500 dark:border-blue-400'
+    ? 'border-primary dark:border-primary'
     : 'border-gray-200 dark:border-gray-700';
   const transitionClass = isDragging
     ? ''
@@ -63,7 +63,7 @@ export default function QuickSettingsHandle({
       title={title}
     >
       {isDragging ? (
-        <GripVertical className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+        <GripVertical className="h-5 w-5 text-primary dark:text-primary" />
       ) : isOpen ? (
         <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
       ) : (

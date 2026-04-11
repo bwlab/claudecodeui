@@ -48,12 +48,12 @@ const statusConfig = {
   },
   in_progress: {
     icon: (
-      <svg className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="h-3.5 w-3.5 text-primary dark:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
     textClass: 'text-gray-900 dark:text-gray-100',
-    badgeClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+    badgeClass: 'bg-primary/10 dark:bg-primary/30 text-primary dark:text-primary border-primary/20 dark:border-primary/20'
   },
   pending: {
     icon: (

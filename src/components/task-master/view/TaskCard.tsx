@@ -42,8 +42,8 @@ function getStatusStyle(status?: string): TaskStatusStyle {
     return {
       icon: Clock,
       statusText: 'In Progress',
-      iconColor: 'text-blue-600 dark:text-blue-400',
-      textColor: 'text-blue-900 dark:text-blue-100',
+      iconColor: 'text-primary dark:text-primary',
+      textColor: 'text-foreground dark:text-muted-foreground',
     };
   }
 
@@ -106,8 +106,8 @@ function renderPriorityIcon(priority?: string) {
   if (priority === 'low') {
     return (
       <Tooltip content="Low priority">
-        <div className="flex h-4 w-4 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
-          <Circle className="h-1.5 w-1.5 fill-current text-blue-600 dark:text-blue-400" />
+        <div className="flex h-4 w-4 items-center justify-center rounded bg-primary/10 dark:bg-primary/30">
+          <Circle className="h-1.5 w-1.5 fill-current text-primary dark:text-primary" />
         </div>
       </Tooltip>
     );
@@ -139,7 +139,7 @@ function TaskCard({ task, onClick = null, showParent = false, className = '' }: 
     <div
       className={cn(
         'bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3',
-        'hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200',
+        'hover:shadow-md hover:border-primary/30 dark:hover:border-primary transition-all duration-200',
         onClick ? 'cursor-pointer hover:-translate-y-0.5' : 'cursor-default',
         className,
       )}
@@ -193,7 +193,7 @@ function TaskCard({ task, onClick = null, showParent = false, className = '' }: 
             <span className="text-xs text-gray-500 dark:text-gray-400">Progress:</span>
             <div className="h-1.5 flex-1 rounded-full bg-gray-200 dark:bg-gray-700" title={`${progress.completed} of ${progress.total} subtasks completed`}>
               <div
-                className={cn('h-full rounded-full transition-all duration-300', task.status === 'done' ? 'bg-green-500' : 'bg-blue-500')}
+                className={cn('h-full rounded-full transition-all duration-300', task.status === 'done' ? 'bg-green-500' : 'bg-primary')}
                 style={{ width: `${progress.percentage}%` }}
               />
             </div>

@@ -191,7 +191,7 @@ export default function CommandMenu({
                 role="option"
                 aria-selected={isSelected}
                 className={`command-item mb-0.5 flex cursor-pointer items-start rounded-md px-3 py-2.5 transition-colors ${
-                  isSelected ? 'bg-blue-50 dark:bg-blue-900' : 'bg-transparent'
+                  isSelected ? 'bg-primary/5 dark:bg-primary' : 'bg-transparent'
                 }`}
                 onMouseEnter={() => onSelect && commandIndex >= 0 && onSelect(command, commandIndex, true)}
                 onClick={() => onSelect && commandIndex >= 0 && onSelect(command, commandIndex, false)}
@@ -213,7 +213,7 @@ export default function CommandMenu({
                     </div>
                   )}
                 </div>
-                {isSelected && <span className="ml-2 text-xs font-semibold text-blue-500 dark:text-blue-300">{'<-'}</span>}
+                {isSelected && <span className="ml-2 text-xs font-semibold text-primary dark:text-primary">{'<-'}</span>}
               </div>
             );
           })}

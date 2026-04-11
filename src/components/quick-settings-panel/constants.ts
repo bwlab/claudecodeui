@@ -20,7 +20,7 @@ export const SETTING_ROW_CLASS =
 export const TOGGLE_ROW_CLASS = `${SETTING_ROW_CLASS} cursor-pointer`;
 
 export const CHECKBOX_CLASS =
-  'h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-blue-500 focus:ring-2 dark:focus:ring-blue-400 bg-gray-100 dark:bg-gray-800 checked:bg-blue-600 dark:checked:bg-blue-600';
+  'h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary dark:text-primary focus:ring-primary focus:ring-2 dark:focus:ring-primary bg-gray-100 dark:bg-gray-800 checked:bg-primary dark:checked:bg-primary';
 
 export const TOOL_DISPLAY_TOGGLES: PreferenceToggleItem[] = [
   {

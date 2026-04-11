@@ -99,7 +99,7 @@ export default function TaskFiltersPanel({
         <div className="text-sm text-gray-600 dark:text-gray-400">
           {t('filters.showing', { filtered: filteredTaskCount, total: totalTaskCount })}
         </div>
-        <button onClick={onClearFilters} className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+        <button onClick={onClearFilters} className="text-sm font-medium text-primary hover:text-primary dark:text-primary dark:hover:text-primary">
           {t('filters.clearFilters')}
         </button>
       </div>

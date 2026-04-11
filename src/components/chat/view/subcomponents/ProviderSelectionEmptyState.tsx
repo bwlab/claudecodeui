@@ -69,9 +69,9 @@ const PROVIDERS: ProviderDef[] = [
     id: "gemini",
     name: "Gemini",
     infoKey: "providerSelection.providerInfo.google",
-    accent: "border-blue-500 dark:border-blue-400",
-    ring: "ring-blue-500/15",
-    check: "bg-blue-500 text-white",
+    accent: "border-primary dark:border-primary",
+    ring: "ring-primary/15",
+    check: "bg-primary text-white",
   },
 ];
 

@@ -24,7 +24,7 @@ export default function StepTypeSelection({
           onClick={() => onWorkspaceTypeChange('existing')}
           className={`rounded-lg border-2 p-4 text-left transition-all ${
             workspaceType === 'existing'
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              ? 'border-primary bg-primary/5 dark:bg-primary/20'
               : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
           }`}
         >
@@ -47,7 +47,7 @@ export default function StepTypeSelection({
           onClick={() => onWorkspaceTypeChange('new')}
           className={`rounded-lg border-2 p-4 text-left transition-all ${
             workspaceType === 'new'
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              ? 'border-primary bg-primary/5 dark:bg-primary/20'
               : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
           }`}
         >
