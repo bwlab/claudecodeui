@@ -148,6 +148,49 @@ const runMigrations = () => {
     )`);
     db.exec('CREATE INDEX IF NOT EXISTS idx_session_names_lookup ON session_names(session_id, provider)');
 
+    // Kanban board tables
+    db.exec(`CREATE TABLE IF NOT EXISTS kanban_columns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_name TEXT NOT NULL,
+      column_name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      is_default BOOLEAN NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_kanban_columns_project ON kanban_columns(project_name)');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS kanban_session_assignments (
+      session_id TEXT NOT NULL,
+      column_id INTEGER NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (session_id),
+      FOREIGN KEY (column_id) REFERENCES kanban_columns(id) ON DELETE CASCADE
+    )`);
+
+    db.exec(`CREATE TABLE IF NOT EXISTS session_notes (
+      session_id TEXT NOT NULL,
+      project_name TEXT NOT NULL,
+      note_text TEXT NOT NULL DEFAULT '',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (session_id, project_name)
+    )`);
+
+    db.exec(`CREATE TABLE IF NOT EXISTS session_labels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_name TEXT NOT NULL,
+      label_name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#3b82f6',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_session_labels_project ON session_labels(project_name)');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS session_label_assignments (
+      session_id TEXT NOT NULL,
+      label_id INTEGER NOT NULL,
+      PRIMARY KEY (session_id, label_id),
+      FOREIGN KEY (label_id) REFERENCES session_labels(id) ON DELETE CASCADE
+    )`);
+
     console.log('Database migrations completed successfully');
   } catch (error) {
     console.error('Error running migrations:', error.message);
@@ -596,6 +639,144 @@ const appConfigDb = {
   }
 };
 
+// Kanban board database operations
+const kanbanDb = {
+  getColumns: (projectName) => {
+    return db.prepare(
+      'SELECT id, project_name, column_name, position, is_default FROM kanban_columns WHERE project_name = ? ORDER BY position'
+    ).all(projectName);
+  },
+
+  createColumn: (projectName, columnName, isDefault = false) => {
+    const maxPos = db.prepare(
+      'SELECT COALESCE(MAX(position), -1) as maxPos FROM kanban_columns WHERE project_name = ?'
+    ).get(projectName);
+    const position = (maxPos?.maxPos ?? -1) + 1;
+    const result = db.prepare(
+      'INSERT INTO kanban_columns (project_name, column_name, position, is_default) VALUES (?, ?, ?, ?)'
+    ).run(projectName, columnName, position, isDefault ? 1 : 0);
+    return { id: result.lastInsertRowid, projectName, columnName, position, isDefault };
+  },
+
+  updateColumn: (columnId, columnName, position) => {
+    if (columnName !== undefined && position !== undefined) {
+      db.prepare('UPDATE kanban_columns SET column_name = ?, position = ? WHERE id = ?').run(columnName, position, columnId);
+    } else if (columnName !== undefined) {
+      db.prepare('UPDATE kanban_columns SET column_name = ? WHERE id = ?').run(columnName, columnId);
+    } else if (position !== undefined) {
+      db.prepare('UPDATE kanban_columns SET position = ? WHERE id = ?').run(position, columnId);
+    }
+  },
+
+  reorderColumns: (projectName, columnIds) => {
+    const stmt = db.prepare('UPDATE kanban_columns SET position = ? WHERE id = ? AND project_name = ?');
+    const transaction = db.transaction((ids) => {
+      ids.forEach((id, index) => stmt.run(index, id, projectName));
+    });
+    transaction(columnIds);
+  },
+
+  deleteColumn: (columnId) => {
+    db.prepare('DELETE FROM kanban_columns WHERE id = ? AND is_default = 0').run(columnId);
+  },
+
+  getDefaultColumn: (projectName) => {
+    return db.prepare(
+      'SELECT id FROM kanban_columns WHERE project_name = ? AND is_default = 1 LIMIT 1'
+    ).get(projectName);
+  },
+
+  getAssignments: (projectName) => {
+    return db.prepare(`
+      SELECT sa.session_id, sa.column_id, sa.position
+      FROM kanban_session_assignments sa
+      JOIN kanban_columns c ON sa.column_id = c.id
+      WHERE c.project_name = ?
+      ORDER BY sa.position
+    `).all(projectName);
+  },
+
+  assignSession: (sessionId, columnId, position) => {
+    db.prepare(`
+      INSERT INTO kanban_session_assignments (session_id, column_id, position)
+      VALUES (?, ?, ?)
+      ON CONFLICT(session_id) DO UPDATE SET column_id = excluded.column_id, position = excluded.position
+    `).run(sessionId, columnId, position);
+  },
+
+  getNotes: (projectName) => {
+    return db.prepare(
+      'SELECT session_id, note_text, updated_at FROM session_notes WHERE project_name = ?'
+    ).all(projectName);
+  },
+
+  setNote: (sessionId, projectName, noteText) => {
+    db.prepare(`
+      INSERT INTO session_notes (session_id, project_name, note_text, updated_at)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(session_id, project_name) DO UPDATE SET note_text = excluded.note_text, updated_at = CURRENT_TIMESTAMP
+    `).run(sessionId, projectName, noteText);
+  },
+
+  getLabels: (projectName) => {
+    return db.prepare(
+      'SELECT id, label_name, color FROM session_labels WHERE project_name = ? ORDER BY label_name'
+    ).all(projectName);
+  },
+
+  createLabel: (projectName, labelName, color) => {
+    const result = db.prepare(
+      'INSERT INTO session_labels (project_name, label_name, color) VALUES (?, ?, ?)'
+    ).run(projectName, labelName, color);
+    return { id: result.lastInsertRowid, labelName, color };
+  },
+
+  updateLabel: (labelId, labelName, color) => {
+    db.prepare('UPDATE session_labels SET label_name = ?, color = ? WHERE id = ?').run(labelName, color, labelId);
+  },
+
+  deleteLabel: (labelId) => {
+    db.prepare('DELETE FROM session_labels WHERE id = ?').run(labelId);
+  },
+
+  getLabelAssignments: (projectName) => {
+    return db.prepare(`
+      SELECT sla.session_id, sla.label_id
+      FROM session_label_assignments sla
+      JOIN session_labels sl ON sla.label_id = sl.id
+      WHERE sl.project_name = ?
+    `).all(projectName);
+  },
+
+  assignLabel: (sessionId, labelId) => {
+    db.prepare(
+      'INSERT OR IGNORE INTO session_label_assignments (session_id, label_id) VALUES (?, ?)'
+    ).run(sessionId, labelId);
+  },
+
+  removeLabel: (sessionId, labelId) => {
+    db.prepare(
+      'DELETE FROM session_label_assignments WHERE session_id = ? AND label_id = ?'
+    ).run(sessionId, labelId);
+  },
+
+  getFullBoard: (projectName) => {
+    const columns = kanbanDb.getColumns(projectName);
+
+    if (columns.length === 0) {
+      const defaultCol = kanbanDb.createColumn(projectName, 'Tutte le sessioni', true);
+      columns.push({ id: defaultCol.id, project_name: projectName, column_name: 'Tutte le sessioni', position: 0, is_default: 1 });
+    }
+
+    const assignments = kanbanDb.getAssignments(projectName);
+    const notes = kanbanDb.getNotes(projectName);
+    const labels = kanbanDb.getLabels(projectName);
+    const labelAssignments = kanbanDb.getLabelAssignments(projectName);
+
+    return { columns, assignments, notes, labels, labelAssignments };
+  },
+};
+
 // Backward compatibility - keep old names pointing to new system
 const githubTokensDb = {
   createGithubToken: (userId, tokenName, githubToken, description = null) => {
@@ -626,5 +807,6 @@ export {
   sessionNamesDb,
   applyCustomSessionNames,
   appConfigDb,
+  kanbanDb,
   githubTokensDb // Backward compatibility
 };
