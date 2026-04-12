@@ -196,19 +196,6 @@ export default function ChatComposer({
           handleGrantToolPermission={handleGrantToolPermission}
         />
 
-        {!hasQuestionPanel && (
-          <div className="mb-2">
-            <ChatStatusBar
-              provider={provider}
-              selectedModel={selectedModel}
-              permissionMode={permissionMode}
-              tokenBudget={tokenBudget}
-              sessionId={currentSessionId}
-              appVersion={appVersion}
-            />
-          </div>
-        )}
-
         {!hasQuestionPanel && <ChatInputControls
           permissionMode={permissionMode}
           onModeSwitch={onModeSwitch}
@@ -373,6 +360,19 @@ export default function ChatComposer({
           </div>
         </div>
       </form>}
+
+      {!hasQuestionPanel && (
+        <div className="mx-auto mt-2 max-w-4xl">
+          <ChatStatusBar
+            provider={provider}
+            selectedModel={selectedModel}
+            permissionMode={permissionMode}
+            tokenBudget={tokenBudget}
+            sessionId={currentSessionId}
+            appVersion={appVersion}
+          />
+        </div>
+      )}
     </div>
   );
 }
