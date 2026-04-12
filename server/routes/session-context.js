@@ -83,6 +83,48 @@ function findSessionJsonlPath(sessionId) {
 }
 
 /**
+ * Best-effort extraction of a plain text payload from a Claude JSONL record.
+ * Handles: string content, array of content blocks, nested message objects.
+ * Always returns a string (or null) — never an object.
+ */
+function extractText(data) {
+  if (!data || typeof data !== 'object') return null;
+
+  // Top-level string fields
+  if (typeof data.content === 'string') return data.content;
+  if (typeof data.text === 'string') return data.text;
+
+  // content as array of blocks like [{ type: 'text', text: '...' }, ...]
+  if (Array.isArray(data.content)) {
+    return data.content
+      .map((c) => {
+        if (typeof c === 'string') return c;
+        if (c && typeof c.text === 'string') return c.text;
+        return '';
+      })
+      .join('');
+  }
+
+  // nested message object: { role, content }
+  if (data.message && typeof data.message === 'object') {
+    if (typeof data.message.content === 'string') return data.message.content;
+    if (Array.isArray(data.message.content)) {
+      return data.message.content
+        .map((c) => {
+          if (typeof c === 'string') return c;
+          if (c && typeof c.text === 'string') return c.text;
+          return '';
+        })
+        .join('');
+    }
+  } else if (typeof data.message === 'string') {
+    return data.message;
+  }
+
+  return null;
+}
+
+/**
  * Extract the initial prompt (system message or first prompt) from a JSONL file.
  * Reads the first ~512KB to capture the system prompt which can include a concatenated CLAUDE.md.
  */
@@ -104,26 +146,16 @@ function extractInitialPrompt(jsonlPath) {
       let data;
       try { data = JSON.parse(line); } catch { continue; }
 
-      // Claude Code writes different record types in JSONL.
-      // System prompt often appears as type: 'system' or as part of the first message payload.
       if (!systemMessage && (data.type === 'system' || data.role === 'system')) {
-        const text = typeof data.content === 'string'
-          ? data.content
-          : Array.isArray(data.content)
-            ? data.content.map((c) => c?.text || '').join('')
-            : (data.message || data.text || null);
-        if (text) {
+        const text = extractText(data);
+        if (text && typeof text === 'string') {
           systemMessage = { role: 'system', text, createdAt: data.timestamp || data.createdAt || null };
         }
       }
 
       if (!firstUserMessage && (data.type === 'user' || data.role === 'user')) {
-        const text = typeof data.content === 'string'
-          ? data.content
-          : Array.isArray(data.content)
-            ? data.content.map((c) => c?.text || '').join('')
-            : (data.message || data.text || null);
-        if (text) {
+        const text = extractText(data);
+        if (text && typeof text === 'string') {
           firstUserMessage = { role: 'user', text, createdAt: data.timestamp || data.createdAt || null };
         }
       }

@@ -147,7 +147,7 @@ export default function SessionContextPanel({ isOpen, onClose, sessionId, projec
                 </button>
 
                 {promptExpanded && (
-                  data.initialPrompt ? (
+                  data.initialPrompt && typeof data.initialPrompt.text === 'string' ? (
                     <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-muted/30 p-3 font-mono text-xs text-foreground">
                       {data.initialPrompt.text}
                     </pre>
