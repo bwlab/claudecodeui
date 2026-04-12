@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Terminal } from 'lucide-react';
 import type { PermissionMode, Provider } from '../../types/types';
 import { getContextWindowForModel } from '../../../../../shared/modelConstants';
 import ThinkingModeSelector from './ThinkingModeSelector';
@@ -22,6 +22,7 @@ interface ChatInputControlsProps {
   hasMessages: boolean;
   onScrollToBottom: () => void;
   onBackToKanban?: () => void;
+  onOpenTerminal?: () => void;
   selectedModel: string;
   onModelChange: (modelId: string) => void;
 }
@@ -41,6 +42,7 @@ export default function ChatInputControls({
   hasMessages,
   onScrollToBottom,
   onBackToKanban,
+  onOpenTerminal,
   selectedModel,
   onModelChange,
 }: ChatInputControlsProps) {
@@ -152,6 +154,17 @@ export default function ChatInputControls({
           title="Kanban"
         >
           <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+      )}
+
+      {onOpenTerminal && (
+        <button
+          type="button"
+          onClick={onOpenTerminal}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground sm:h-8 sm:w-8"
+          title="Apri terminale di sistema"
+        >
+          <Terminal className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
       )}
     </div>

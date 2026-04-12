@@ -97,4 +97,64 @@ router.post('/:projectName/in-ide', async (req, res) => {
   }
 });
 
+// POST /api/project-open/:projectName/in-terminal
+router.post('/:projectName/in-terminal', async (req, res) => {
+  try {
+    const cwd = await extractProjectDirectory(req.params.projectName);
+    if (!cwd || !fs.existsSync(cwd)) {
+      return res.status(404).json({ error: 'Project path not found' });
+    }
+
+    const platform = process.platform;
+    let command;
+    let args = [];
+
+    if (platform === 'darwin') {
+      command = 'open';
+      args = ['-a', 'Terminal', cwd];
+    } else if (platform === 'win32') {
+      command = 'cmd';
+      args = ['/c', 'start', 'cmd', '/K', `cd /d "${cwd}"`];
+    } else {
+      // Linux — try common terminals in order
+      const candidates = [
+        { cmd: 'gnome-terminal', buildArgs: (d) => ['--working-directory', d] },
+        { cmd: 'konsole', buildArgs: (d) => ['--workdir', d] },
+        { cmd: 'xfce4-terminal', buildArgs: (d) => ['--working-directory', d] },
+        { cmd: 'tilix', buildArgs: (d) => ['--working-directory', d] },
+        { cmd: 'alacritty', buildArgs: (d) => ['--working-directory', d] },
+        { cmd: 'kitty', buildArgs: (d) => ['--directory', d] },
+        { cmd: 'xterm', buildArgs: (d) => ['-e', `cd "${d}" && bash`] },
+      ];
+      let chosen = null;
+      for (const c of candidates) {
+        try {
+          const { spawnSync } = await import('child_process');
+          const which = spawnSync('which', [c.cmd]);
+          if (which.status === 0) {
+            chosen = { cmd: c.cmd, args: c.buildArgs(cwd) };
+            break;
+          }
+        } catch { /* continue */ }
+      }
+      if (!chosen) return res.status(500).json({ error: 'Nessun terminale trovato' });
+      command = chosen.cmd;
+      args = chosen.args;
+    }
+
+    try {
+      const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+      child.on('error', (err) => console.error('Terminal spawn error:', err));
+      child.unref();
+    } catch (err) {
+      return res.status(500).json({ error: `Failed to launch ${command}: ${err?.message || err}` });
+    }
+
+    res.json({ success: true, platform, command, path: cwd });
+  } catch (error) {
+    console.error('Error opening project in terminal:', error);
+    res.status(500).json({ error: 'Failed to open terminal' });
+  }
+});
+
 export default router;
