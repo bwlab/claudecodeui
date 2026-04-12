@@ -44,7 +44,7 @@ import pty from 'node-pty';
 import fetch from 'node-fetch';
 import mime from 'mime-types';
 
-import { getProjects, getSessions, renameProject, deleteSession, moveClaudeSessionToProject, deleteProject, addProjectManually, extractProjectDirectory, clearProjectDirectoryCache, searchConversations } from './projects.js';
+import { getProjects, getSessions, renameProject, deleteSession, moveClaudeSessionToProject, deleteProject, addProjectManually, extractProjectDirectory, clearProjectDirectoryCache, searchConversations, updateProjectPath } from './projects.js';
 import { queryClaudeSDK, abortClaudeSDKSession, isClaudeSDKSessionActive, getActiveClaudeSDKSessions, resolveToolApproval, getPendingApprovalsForSession, reconnectSessionWriter } from './claude-sdk.js';
 import { spawnCursor, abortCursorSession, isCursorSessionActive, getActiveCursorSessions } from './cursor-cli.js';
 import { queryCodex, abortCodexSession, isCodexSessionActive, getActiveCodexSessions } from './openai-codex.js';
@@ -540,6 +540,20 @@ app.put('/api/projects/:projectName/rename', authenticateToken, async (req, res)
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Update project path endpoint
+app.put('/api/projects/:projectName/path', authenticateToken, async (req, res) => {
+    try {
+        const { path: newPath } = req.body;
+        if (!newPath) {
+            return res.status(400).json({ error: 'path is required' });
+        }
+        const resolvedPath = await updateProjectPath(req.params.projectName, newPath);
+        res.json({ success: true, path: resolvedPath });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 });
 

@@ -1,12 +1,14 @@
-import { Clock, MessageSquare, Folder, FolderOpen, Code, PlayCircle, CheckCircle2, CircleDot } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Clock, MessageSquare, Folder, FolderOpen, Code, PlayCircle, CheckCircle2, CircleDot, Pencil, Check, X } from 'lucide-react';
 import type { Project } from '../../../../types/app';
-import { authenticatedFetch } from '../../../../utils/api';
+import { authenticatedFetch, api } from '../../../../utils/api';
 import type { ClaudeTaskSummary } from '../../../claude-tasks/types/claude-tasks';
 
 type DashboardProjectCardProps = {
   project: Project;
   onClick: (project: Project) => void;
   taskSummary?: ClaudeTaskSummary;
+  onPathUpdated?: (projectName: string, newPath: string) => void;
 };
 
 function getSessionCount(project: Project): number {
@@ -53,16 +55,55 @@ function getProviders(project: Project): string[] {
   return providers;
 }
 
-export default function DashboardProjectCard({ project, onClick, taskSummary }: DashboardProjectCardProps) {
+export default function DashboardProjectCard({ project, onClick, taskSummary, onPathUpdated }: DashboardProjectCardProps) {
   const sessionCount = getSessionCount(project);
   const lastActivity = getLastActivity(project);
   const providers = getProviders(project);
+  const currentPath = project.path || project.fullPath || '';
+
+  const [editingPath, setEditingPath] = useState(false);
+  const [pathValue, setPathValue] = useState(currentPath);
+  const [savingPath, setSavingPath] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEditPath = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPathValue(currentPath);
+    setEditingPath(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const cancelEditPath = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingPath(false);
+    setPathValue(currentPath);
+  };
+
+  const savePath = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!pathValue.trim() || pathValue.trim() === currentPath) {
+      setEditingPath(false);
+      return;
+    }
+    setSavingPath(true);
+    try {
+      const res = await api.updateProjectPath(project.name, pathValue.trim());
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore aggiornamento path');
+      setEditingPath(false);
+      onPathUpdated?.(project.name, data.path);
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setSavingPath(false);
+    }
+  };
 
   return (
     <button
       type="button"
-      onClick={() => onClick(project)}
-      className="w-full rounded-lg border border-border/60 bg-card p-3 text-left transition-all hover:border-border hover:shadow-sm"
+      onClick={() => !editingPath && onClick(project)}
+      className="group/card w-full rounded-lg border border-border/60 bg-card p-3 text-left transition-all hover:border-border hover:shadow-sm"
     >
       <div className="flex items-start gap-2">
         <Folder className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -70,51 +111,92 @@ export default function DashboardProjectCard({ project, onClick, taskSummary }: 
           <p className="truncate text-sm font-medium text-foreground">
             {project.displayName || project.name}
           </p>
-          {(project.path || project.fullPath) && (
-            <div className="mt-0.5 flex items-center gap-1.5">
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    const res = await authenticatedFetch(`/api/project-open/${encodeURIComponent(project.name)}/in-file-manager`, { method: 'POST' });
-                    if (!res.ok) {
-                      const data = await res.json().catch(() => ({}));
-                      alert(data.error || 'Impossibile aprire il file manager');
-                    }
-                  } catch (err) {
-                    alert((err as Error).message);
-                  }
-                }}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).click(); } }}
-                className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1 truncate text-xs text-muted-foreground transition-colors hover:text-primary"
-                title="Apri nel file manager"
-              >
-                <FolderOpen className="h-3 w-3 shrink-0" />
-                <span className="truncate">{project.path || project.fullPath}</span>
-              </span>
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    const res = await authenticatedFetch(`/api/project-open/${encodeURIComponent(project.name)}/in-ide`, { method: 'POST' });
-                    if (!res.ok) {
-                      const data = await res.json().catch(() => ({}));
-                      alert(data.error || 'Impossibile aprire l\'IDE');
-                    }
-                  } catch (err) {
-                    alert((err as Error).message);
-                  }
-                }}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).click(); } }}
-                className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded p-0.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                title="Apri nell'IDE"
-              >
-                <Code className="h-3 w-3" />
-              </span>
+          {currentPath && (
+            <div className="mt-0.5">
+              {editingPath ? (
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={pathValue}
+                    onChange={(e) => setPathValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') savePath();
+                      if (e.key === 'Escape') cancelEditPath();
+                    }}
+                    className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1.5 py-0.5 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+                    disabled={savingPath}
+                  />
+                  <button
+                    onClick={savePath}
+                    disabled={savingPath}
+                    className="shrink-0 rounded p-0.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    title="Salva"
+                  >
+                    <Check className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={cancelEditPath}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted"
+                    title="Annulla"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        const res = await authenticatedFetch(`/api/project-open/${encodeURIComponent(project.name)}/in-file-manager`, { method: 'POST' });
+                        if (!res.ok) {
+                          const data = await res.json().catch(() => ({}));
+                          alert(data.error || 'Impossibile aprire il file manager');
+                        }
+                      } catch (err) {
+                        alert((err as Error).message);
+                      }
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).click(); } }}
+                    className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1 truncate text-xs text-muted-foreground transition-colors hover:text-primary"
+                    title="Apri nel file manager"
+                  >
+                    <FolderOpen className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{currentPath}</span>
+                  </span>
+                  <button
+                    onClick={startEditPath}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover/card:opacity-100"
+                    title="Modifica path"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        const res = await authenticatedFetch(`/api/project-open/${encodeURIComponent(project.name)}/in-ide`, { method: 'POST' });
+                        if (!res.ok) {
+                          const data = await res.json().catch(() => ({}));
+                          alert(data.error || 'Impossibile aprire l\'IDE');
+                        }
+                      } catch (err) {
+                        alert((err as Error).message);
+                      }
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); (e.currentTarget as HTMLSpanElement).click(); } }}
+                    className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded p-0.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                    title="Apri nell'IDE"
+                  >
+                    <Code className="h-3 w-3" />
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>

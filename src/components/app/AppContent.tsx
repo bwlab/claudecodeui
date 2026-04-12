@@ -151,6 +151,21 @@ export default function AppContent() {
     }
   }, [isConnected, selectedSession?.id, sendMessage]);
 
+  useEffect(() => {
+    const parts: string[] = [];
+    const sessionName = (
+      (selectedSession?.title as string | undefined)
+      || (selectedSession?.summary as string | undefined)
+      || (selectedSession?.name as string | undefined)
+      || ''
+    ).toString().trim();
+    if (sessionName) parts.push(sessionName);
+    const projectName = selectedProject?.displayName?.trim();
+    if (projectName) parts.push(projectName);
+    parts.push('CloudCLI UI');
+    document.title = parts.join(' - ');
+  }, [selectedProject, selectedSession]);
+
   const filteredSidebarProps = useMemo(() => {
     if (!singleProjectMode || !selectedProject) return sidebarSharedProps;
     return {

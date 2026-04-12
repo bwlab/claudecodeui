@@ -1101,6 +1101,36 @@ async function renameProject(projectName, newDisplayName) {
   return true;
 }
 
+// Update a project's actual path (originalPath override in config)
+async function updateProjectPath(projectName, newPath) {
+  const absolutePath = path.resolve(newPath);
+
+  // Verify path exists
+  try {
+    const stats = await fs.stat(absolutePath);
+    if (!stats.isDirectory()) {
+      throw new Error('Il percorso specificato non è una directory');
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error('Il percorso specificato non esiste');
+    }
+    throw error;
+  }
+
+  const config = await loadProjectConfig();
+  config[projectName] = {
+    ...config[projectName],
+    originalPath: absolutePath,
+  };
+  await saveProjectConfig(config);
+
+  // Clear cache so next discovery picks up new path
+  projectDirectoryCache.delete(projectName);
+
+  return absolutePath;
+}
+
 // Delete a session from a project
 async function deleteSession(projectName, sessionId) {
   const projectDir = path.join(os.homedir(), '.claude', 'projects', projectName);
@@ -2656,5 +2686,6 @@ export {
   deleteCodexSession,
   getGeminiCliSessions,
   getGeminiCliSessionMessages,
-  searchConversations
+  searchConversations,
+  updateProjectPath
 };

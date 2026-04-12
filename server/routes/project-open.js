@@ -11,6 +11,23 @@ const router = express.Router();
 
 const DEFAULT_IDE_COMMAND = 'code';
 
+// GUI apps (xdg-open, nautilus, IDE GUIs) need DBUS_SESSION_BUS_ADDRESS and
+// XDG_RUNTIME_DIR to reach the user's desktop session. Node processes
+// started without these vars spawn the app but it has nothing to bind to
+// and exits silently.
+function buildGuiEnv() {
+  const env = { ...process.env };
+  if (process.platform === 'linux') {
+    const uid = typeof process.getuid === 'function' ? process.getuid() : null;
+    if (uid != null) {
+      if (!env.XDG_RUNTIME_DIR) env.XDG_RUNTIME_DIR = `/run/user/${uid}`;
+      if (!env.DBUS_SESSION_BUS_ADDRESS) env.DBUS_SESSION_BUS_ADDRESS = `unix:path=/run/user/${uid}/bus`;
+    }
+    if (!env.DISPLAY) env.DISPLAY = ':0';
+  }
+  return env;
+}
+
 function detectLinuxTerminal() {
   // 1. User preference from DB
   const stored = appConfigDb.get('terminal_command');
@@ -100,7 +117,7 @@ router.post('/:projectName/in-file-manager', async (req, res) => {
     }
 
     try {
-      const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+      const child = spawn(command, args, { detached: true, stdio: 'ignore', env: buildGuiEnv() });
       child.on('error', (err) => console.error('File manager spawn error:', err));
       child.unref();
     } catch (err) {
@@ -129,7 +146,7 @@ router.post('/:projectName/in-ide', async (req, res) => {
     const extraArgs = parts.slice(1);
 
     try {
-      const child = spawn(command, [...extraArgs, cwd], { detached: true, stdio: 'ignore' });
+      const child = spawn(command, [...extraArgs, cwd], { detached: true, stdio: 'ignore', env: buildGuiEnv() });
       child.on('error', (err) => console.error('IDE spawn error:', err));
       child.unref();
     } catch (err) {
@@ -285,7 +302,7 @@ router.post('/:projectName/in-terminal-with-claude', async (req, res) => {
     // Build a wrapper script to avoid quoting/escaping issues across terminals
     const scriptPath = writeClaudeLauncherScript(cwd, claudeCmd);
     const args = buildLinuxTerminalArgsForScript(chosen, cwd, scriptPath);
-    const child = spawn(chosen, args, { detached: true, stdio: 'ignore' });
+    const child = spawn(chosen, args, { detached: true, stdio: 'ignore', env: buildGuiEnv() });
     child.on('error', (err) => console.error('Terminal spawn error:', err));
     child.unref();
 
