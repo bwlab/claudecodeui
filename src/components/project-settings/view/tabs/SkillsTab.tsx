@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Sparkles, AlertCircle, FolderOpen, Check } from 'lucide-react';
-import { useProjectSettingsApi, type ProjectSkill } from '../../hooks/useProjectSettingsApi';
+import { Loader2, Sparkles, AlertCircle, FolderOpen, Check, Globe } from 'lucide-react';
+import { useProjectSettingsApi, type ProjectSkill, type GlobalSkill } from '../../hooks/useProjectSettingsApi';
 
 type SkillsTabProps = {
   projectName: string;
@@ -14,15 +14,22 @@ export default function SkillsTab({ projectName }: SkillsTabProps) {
   const [loading, setLoading] = useState(true);
   const [editingDir, setEditingDir] = useState(false);
   const [newDirValue, setNewDirValue] = useState('');
+  const [globalSkills, setGlobalSkills] = useState<GlobalSkill[]>([]);
+  const [globalDir, setGlobalDir] = useState('');
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.listSkills(projectName);
-      setSkills(data.skills);
-      setMasterDir(data.masterDir);
-      setMasterExists(data.masterExists);
-      setNewDirValue(data.masterDir);
+      const [projectData, globalData] = await Promise.all([
+        api.listSkills(projectName),
+        api.listGlobalSkills(),
+      ]);
+      setSkills(projectData.skills);
+      setMasterDir(projectData.masterDir);
+      setMasterExists(projectData.masterExists);
+      setNewDirValue(projectData.masterDir);
+      setGlobalSkills(globalData.skills);
+      setGlobalDir(globalData.dir);
     } finally {
       setLoading(false);
     }
@@ -33,6 +40,15 @@ export default function SkillsTab({ projectName }: SkillsTabProps) {
   const handleToggle = async (skill: ProjectSkill) => {
     try {
       await api.toggleSkill(projectName, skill.name, !skill.enabled);
+      await reload();
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  };
+
+  const handleToggleGlobal = async (skill: GlobalSkill) => {
+    try {
+      await api.toggleGlobalSkill(skill.name, !skill.enabled);
       await reload();
     } catch (err) {
       alert((err as Error).message);
@@ -116,6 +132,54 @@ export default function SkillsTab({ projectName }: SkillsTabProps) {
                   onClick={() => handleToggle(skill)}
                   disabled={skill.linkInfo === 'real-dir'}
                   className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${skill.enabled ? 'bg-primary' : 'bg-muted'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${skill.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Global skills (user scope, ~/.claude/skills) */}
+      <div>
+        <div className="mb-2 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">Skill globali (user)</h3>
+        </div>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Skill in <code className="rounded bg-muted px-1 py-0.5 font-mono">{globalDir}</code> caricate automaticamente per <strong>tutte</strong> le sessioni.
+          Disabilitarle le rinomina a <code>.disabled</code> — l&apos;effetto è globale, non per progetto.
+        </p>
+        {globalSkills.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border py-6 text-center text-sm text-muted-foreground">
+            Nessuna skill globale trovata
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {globalSkills.map((skill) => (
+              <div key={skill.rawDirName} className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+                <Sparkles className={`mt-0.5 h-4 w-4 shrink-0 ${skill.enabled ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{skill.name}</span>
+                    {skill.enabled ? (
+                      <span className="flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                        <Check className="h-2.5 w-2.5" /> attiva
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        disabilitata
+                      </span>
+                    )}
+                  </div>
+                  {skill.description && <p className="mt-0.5 text-xs text-muted-foreground">{skill.description}</p>}
+                  <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">{skill.fullPath}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleGlobal(skill)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${skill.enabled ? 'bg-primary' : 'bg-muted'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${skill.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                 </button>

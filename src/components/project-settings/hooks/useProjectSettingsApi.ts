@@ -18,6 +18,14 @@ export type ProjectSkill = {
   linkInfo: string | null;
 };
 
+export type GlobalSkill = {
+  name: string;
+  rawDirName: string;
+  fullPath: string;
+  description: string | null;
+  enabled: boolean;
+};
+
 export type ProjectMcpServer = {
   name: string;
   scope: 'user' | 'project';
@@ -98,6 +106,24 @@ export function useProjectSettingsApi() {
     });
   }, []);
 
+  // --- Global skills (user scope, ~/.claude/skills) ---
+  const listGlobalSkills = useCallback(async (): Promise<{ dir: string; skills: GlobalSkill[] }> => {
+    const res = await authenticatedFetch('/api/project-skills/global/list');
+    const data = await res.json();
+    return { dir: data.dir, skills: data.skills ?? [] };
+  }, []);
+
+  const toggleGlobalSkill = useCallback(async (name: string, enabled: boolean) => {
+    const res = await authenticatedFetch('/api/project-skills/global/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ name, enabled }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Toggle failed' }));
+      throw new Error(err.error || 'Failed to toggle global skill');
+    }
+  }, []);
+
   // --- MCP ---
   const listMcpServers = useCallback(async (projectName: string): Promise<ProjectMcpServer[]> => {
     const res = await authenticatedFetch(`/api/project-mcp/${encodeURIComponent(projectName)}`);
@@ -119,10 +145,12 @@ export function useProjectSettingsApi() {
   return useMemo(() => ({
     listCommands, createCommand, updateCommand, deleteCommand, generateClaudeMd,
     listSkills, toggleSkill, getSkillsMasterDir, setSkillsMasterDir,
+    listGlobalSkills, toggleGlobalSkill,
     listMcpServers, toggleMcpServer,
   }), [
     listCommands, createCommand, updateCommand, deleteCommand, generateClaudeMd,
     listSkills, toggleSkill, getSkillsMasterDir, setSkillsMasterDir,
+    listGlobalSkills, toggleGlobalSkill,
     listMcpServers, toggleMcpServer,
   ]);
 }

@@ -8,6 +8,8 @@ import { appConfigDb } from '../database/db.js';
 const router = express.Router();
 
 const DEFAULT_MASTER_DIR = path.join(os.homedir(), 'Google Drive', 'ai-global', 'per-progetto', 'skills');
+const USER_SKILLS_DIR = path.join(os.homedir(), '.claude', 'skills');
+const DISABLED_SUFFIX = '.disabled';
 
 function getMasterDir() {
   const stored = appConfigDb.get('skills_master_dir');
@@ -152,6 +154,86 @@ router.post('/:projectName/toggle', async (req, res) => {
   } catch (error) {
     console.error('Error toggling project skill:', error);
     res.status(500).json({ error: 'Failed to toggle project skill' });
+  }
+});
+
+// GET /api/project-skills/global — list global user-scope skills (~/.claude/skills/)
+router.get('/global/list', (req, res) => {
+  try {
+    if (!fs.existsSync(USER_SKILLS_DIR)) {
+      return res.json({ success: true, dir: USER_SKILLS_DIR, skills: [] });
+    }
+
+    const skills = [];
+    for (const entry of fs.readdirSync(USER_SKILLS_DIR, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const rawName = entry.name;
+      const isDisabled = rawName.endsWith(DISABLED_SUFFIX);
+      const displayName = isDisabled ? rawName.slice(0, -DISABLED_SUFFIX.length) : rawName;
+      const fullPath = path.join(USER_SKILLS_DIR, rawName);
+      const description = readSkillDescription(fullPath);
+      skills.push({
+        name: displayName,
+        rawDirName: rawName,
+        fullPath,
+        description,
+        enabled: !isDisabled,
+      });
+    }
+
+    // De-duplicate if both <name> and <name>.disabled exist (shouldn't happen, but safe)
+    const byName = new Map();
+    for (const s of skills) {
+      if (!byName.has(s.name) || s.enabled) byName.set(s.name, s);
+    }
+
+    res.json({ success: true, dir: USER_SKILLS_DIR, skills: Array.from(byName.values()) });
+  } catch (error) {
+    console.error('Error listing global skills:', error);
+    res.status(500).json({ error: 'Failed to list global skills' });
+  }
+});
+
+// POST /api/project-skills/global/toggle — body { name, enabled } -> rename to add/remove .disabled suffix
+router.post('/global/toggle', (req, res) => {
+  try {
+    const { name, enabled } = req.body || {};
+    if (typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'name is required' });
+    }
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be boolean' });
+    }
+
+    const activePath = path.join(USER_SKILLS_DIR, name);
+    const disabledPath = path.join(USER_SKILLS_DIR, `${name}${DISABLED_SUFFIX}`);
+
+    if (enabled) {
+      // Rename <name>.disabled -> <name>
+      if (!fs.existsSync(disabledPath)) {
+        if (fs.existsSync(activePath)) return res.json({ success: true, alreadyEnabled: true });
+        return res.status(404).json({ error: 'Disabled skill not found' });
+      }
+      if (fs.existsSync(activePath)) {
+        return res.status(409).json({ error: 'Both enabled and disabled dirs exist' });
+      }
+      fs.renameSync(disabledPath, activePath);
+    } else {
+      // Rename <name> -> <name>.disabled
+      if (!fs.existsSync(activePath)) {
+        if (fs.existsSync(disabledPath)) return res.json({ success: true, alreadyDisabled: true });
+        return res.status(404).json({ error: 'Skill not found' });
+      }
+      if (fs.existsSync(disabledPath)) {
+        return res.status(409).json({ error: 'Disabled version already exists' });
+      }
+      fs.renameSync(activePath, disabledPath);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error toggling global skill:', error);
+    res.status(500).json({ error: 'Failed to toggle global skill' });
   }
 });
 
