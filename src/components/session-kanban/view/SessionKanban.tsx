@@ -174,6 +174,7 @@ export default function SessionKanban({ project, onSessionClick, onNewSession, o
             onSessionClick={handleSessionClick}
             onSessionUpdated={onSessionUpdated}
             onSessionDeleted={onSessionDeleted}
+            onMoveColumn={kanban.moveColumn}
           />
         )}
         {viewMode === 'tabs' && (

@@ -50,6 +50,7 @@ export default function DashboardView({ dashboardId, projects, onProjectClick }:
     onDeleteRaccoglitore: state.deleteRaccoglitore,
     onAssignProject: state.assignProject,
     onRemoveProject: state.removeProject,
+    onMoveRaccoglitori: state.moveRaccoglitori,
     allProjects: projects,
     taskSummary,
   };

@@ -84,6 +84,27 @@ export function useDashboardState(dashboardId: number, projects: Project[]) {
     setAssignments((prev) => prev.filter((a) => !(a.raccoglitore_id === rid && a.project_name === projectName)));
   }, [api, dashboard]);
 
+  const moveRaccoglitori = useCallback(async (raccoglitoreIds: number[]) => {
+    if (!dashboard) return;
+    // Optimistic local reorder
+    setRaccoglitori((prev) => {
+      const byId = new Map(prev.map((r) => [r.id, r]));
+      const reordered = raccoglitoreIds
+        .map((id, idx) => {
+          const r = byId.get(id);
+          return r ? { ...r, position: idx } : null;
+        })
+        .filter(Boolean) as typeof prev;
+      return reordered;
+    });
+    try {
+      await api.reorderRaccoglitori(dashboard.id, raccoglitoreIds);
+    } catch (err) {
+      console.error('reorderRaccoglitori failed, reloading', err);
+      await reload();
+    }
+  }, [api, dashboard, reload]);
+
   return {
     loading,
     dashboard,
@@ -92,6 +113,7 @@ export function useDashboardState(dashboardId: number, projects: Project[]) {
     projectsByRaccoglitore,
     updateViewMode,
     addRaccoglitore,
+    moveRaccoglitori,
     updateRaccoglitore,
     deleteRaccoglitore,
     assignProject,
