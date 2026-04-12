@@ -19,7 +19,10 @@ export default function TerminalLauncher({
   const [resume, setResume] = useState(Boolean(currentSessionId));
   const [continueSession, setContinueSession] = useState(false);
   const [permissionMode, setPermissionMode] = useState<PermissionMode>((currentPermissionMode as PermissionMode) || 'default');
-  const [model, setModel] = useState(currentModel);
+  // If the stored model is no longer in the official list (e.g. a removed alias like opus[1m]),
+  // fall back to the default so the popover doesn't emit an invalid value.
+  const isValidModel = CLAUDE_MODELS.OPTIONS.some((m) => m.value === currentModel);
+  const [model, setModel] = useState(isValidModel ? currentModel : CLAUDE_MODELS.DEFAULT);
   const [verbose, setVerbose] = useState(false);
   const [debug, setDebug] = useState(false);
   const [launching, setLaunching] = useState(false);
@@ -35,16 +38,17 @@ export default function TerminalLauncher({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Preview del comando
+  // Preview del comando (allineato al backend che wrappa ogni valore in single quotes)
+  const shQuote = (v: string) => `'${v.replace(/'/g, `'\\''`)}'`;
   const parts: string[] = ['claude'];
   if (continueSession) {
     parts.push('--continue');
   } else if (resume && currentSessionId) {
-    parts.push('--resume', currentSessionId);
+    parts.push('--resume', shQuote(currentSessionId));
   }
   if (permissionMode === 'bypassPermissions') parts.push('--dangerously-skip-permissions');
-  else if (permissionMode !== 'default') parts.push('--permission-mode', permissionMode);
-  if (model) parts.push('--model', model);
+  else if (permissionMode !== 'default') parts.push('--permission-mode', shQuote(permissionMode));
+  if (model) parts.push('--model', shQuote(model));
   if (verbose) parts.push('--verbose');
   if (debug) parts.push('--debug');
   const commandPreview = parts.join(' ');
