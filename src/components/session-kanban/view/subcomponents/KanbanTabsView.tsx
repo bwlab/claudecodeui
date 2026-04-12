@@ -12,11 +12,12 @@ type KanbanTabsViewProps = {
   onSessionClick: (session: ProjectSession) => void;
   onSessionUpdated: () => void;
   onSessionDeleted: (sessionId: string) => void;
+  allProjects?: import('../../../../types/app').Project[];
 };
 
 export default function KanbanTabsView({
   columns, sessionsByColumn, currentTime, projectName,
-  getLabelsForSession, onSessionClick, onSessionUpdated, onSessionDeleted,
+  getLabelsForSession, onSessionClick, onSessionUpdated, onSessionDeleted, allProjects,
 }: KanbanTabsViewProps) {
   const [activeId, setActiveId] = useState<number | null>(columns[0]?.id ?? null);
 
@@ -58,6 +59,7 @@ export default function KanbanTabsView({
                 onSessionClick={onSessionClick}
                 onSessionUpdated={onSessionUpdated}
                 onSessionDeleted={onSessionDeleted}
+                allProjects={allProjects}
               />
             ))}
           </div>

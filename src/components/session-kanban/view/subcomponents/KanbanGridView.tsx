@@ -11,11 +11,12 @@ type KanbanGridViewProps = {
   onSessionClick: (session: ProjectSession) => void;
   onSessionUpdated: () => void;
   onSessionDeleted: (sessionId: string) => void;
+  allProjects?: import('../../../../types/app').Project[];
 };
 
 export default function KanbanGridView({
   columns, sessionsByColumn, currentTime, projectName,
-  getLabelsForSession, onSessionClick, onSessionUpdated, onSessionDeleted,
+  getLabelsForSession, onSessionClick, onSessionUpdated, onSessionDeleted, allProjects,
 }: KanbanGridViewProps) {
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-4">
@@ -39,6 +40,7 @@ export default function KanbanGridView({
                     onSessionClick={onSessionClick}
                     onSessionUpdated={onSessionUpdated}
                     onSessionDeleted={onSessionDeleted}
+                    allProjects={allProjects}
                   />
                 ))}
               </div>

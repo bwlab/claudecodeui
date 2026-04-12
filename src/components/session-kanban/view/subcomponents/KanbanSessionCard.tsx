@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Clock, Pencil, Trash2, Check, X } from 'lucide-react';
+import { Clock, Pencil, Trash2, Check, X, FolderInput } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../../shared/view/ui';
 import { formatTimeAgo } from '../../../../utils/dateUtils';
@@ -12,6 +12,8 @@ import type { SessionLabel } from '../../types/kanban';
 import LabelChip from './LabelChip';
 import SessionNoteEditor from './SessionNoteEditor';
 import LabelManager from './LabelManager';
+import MoveSessionDialog from './MoveSessionDialog';
+import type { Project } from '../../../../types/app';
 
 type KanbanSessionCardProps = {
   session: ProjectSession;
@@ -28,6 +30,7 @@ type KanbanSessionCardProps = {
   onDeleteLabel: (labelId: number) => void;
   onSessionUpdated: () => void;
   onSessionDeleted: (sessionId: string) => void;
+  allProjects?: Project[];
 };
 
 export default function KanbanSessionCard({
@@ -45,6 +48,7 @@ export default function KanbanSessionCard({
   onDeleteLabel,
   onSessionUpdated,
   onSessionDeleted,
+  allProjects,
 }: KanbanSessionCardProps) {
   const { t } = useTranslation();
 
@@ -68,6 +72,7 @@ export default function KanbanSessionCard({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
 
   // Active detection (same logic as sidebar): < 10 min since last activity
   let isActive = false;
@@ -150,6 +155,17 @@ export default function KanbanSessionCard({
           >
             <Pencil className="h-3 w-3 text-muted-foreground" />
           </button>
+          {provider === 'claude' && allProjects && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowMoveDialog(true); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="flex h-6 w-6 items-center justify-center rounded bg-muted/80 hover:bg-accent"
+              title="Sposta in un altro progetto"
+            >
+              <FolderInput className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
           <button
             type="button"
             onClick={handleDelete}
@@ -160,6 +176,17 @@ export default function KanbanSessionCard({
             <Trash2 className="h-3 w-3 text-destructive" />
           </button>
         </div>
+      )}
+
+      {showMoveDialog && allProjects && (
+        <MoveSessionDialog
+          session={session}
+          sessionTitle={title}
+          currentProjectName={projectName}
+          allProjects={allProjects}
+          onClose={() => setShowMoveDialog(false)}
+          onMoved={(sid) => { setShowMoveDialog(false); onSessionDeleted(sid); onSessionUpdated(); }}
+        />
       )}
 
       {/* Header: provider + title */}

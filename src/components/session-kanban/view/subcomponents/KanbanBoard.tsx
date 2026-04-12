@@ -43,6 +43,7 @@ type KanbanBoardProps = {
   projectName: string;
   onSessionUpdated: () => void;
   onSessionDeleted: (sessionId: string) => void;
+  allProjects?: import('../../../../types/app').Project[];
 };
 
 export default function KanbanBoard({
@@ -67,6 +68,7 @@ export default function KanbanBoard({
   projectName,
   onSessionUpdated,
   onSessionDeleted,
+  allProjects,
 }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -177,6 +179,7 @@ export default function KanbanBoard({
                 projectName={projectName}
                 onSessionUpdated={onSessionUpdated}
                 onSessionDeleted={onSessionDeleted}
+                allProjects={allProjects}
               />
             );
           })}

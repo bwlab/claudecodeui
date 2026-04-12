@@ -16,9 +16,10 @@ type SessionKanbanProps = {
   onNewSession: () => void;
   onSessionUpdated: () => void;
   onSessionDeleted: (sessionId: string) => void;
+  allProjects?: Project[];
 };
 
-export default function SessionKanban({ project, onSessionClick, onNewSession, onSessionUpdated, onSessionDeleted }: SessionKanbanProps) {
+export default function SessionKanban({ project, onSessionClick, onNewSession, onSessionUpdated, onSessionDeleted, allProjects }: SessionKanbanProps) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [settingsTab, setSettingsTab] = useState<ProjectSettingsTab | null>(null);
   const viewModeKey = `session-kanban-view-${project.name}`;
@@ -162,6 +163,7 @@ export default function SessionKanban({ project, onSessionClick, onNewSession, o
             projectName={project.name}
             onSessionUpdated={onSessionUpdated}
             onSessionDeleted={onSessionDeleted}
+            allProjects={allProjects}
           />
         )}
         {viewMode === 'accordion' && (
@@ -175,6 +177,7 @@ export default function SessionKanban({ project, onSessionClick, onNewSession, o
             onSessionUpdated={onSessionUpdated}
             onSessionDeleted={onSessionDeleted}
             onMoveColumn={kanban.moveColumn}
+            allProjects={allProjects}
           />
         )}
         {viewMode === 'tabs' && (
@@ -187,6 +190,7 @@ export default function SessionKanban({ project, onSessionClick, onNewSession, o
             onSessionClick={handleSessionClick}
             onSessionUpdated={onSessionUpdated}
             onSessionDeleted={onSessionDeleted}
+            allProjects={allProjects}
           />
         )}
         {viewMode === 'grid' && (
@@ -199,6 +203,7 @@ export default function SessionKanban({ project, onSessionClick, onNewSession, o
             onSessionClick={handleSessionClick}
             onSessionUpdated={onSessionUpdated}
             onSessionDeleted={onSessionDeleted}
+            allProjects={allProjects}
           />
         )}
       </div>

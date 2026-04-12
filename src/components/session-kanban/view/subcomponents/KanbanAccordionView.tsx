@@ -30,11 +30,12 @@ type KanbanAccordionViewProps = {
   onSessionUpdated: () => void;
   onSessionDeleted: (sessionId: string) => void;
   onMoveColumn: (columnIds: number[]) => void;
+  allProjects?: import('../../../../types/app').Project[];
 };
 
 function SortableAccordionItem({
   column, items, isOpen, toggle, currentTime, projectName,
-  getLabelsForSession, onSessionClick, onSessionUpdated, onSessionDeleted,
+  getLabelsForSession, onSessionClick, onSessionUpdated, onSessionDeleted, allProjects,
 }: {
   column: KanbanColumn;
   items: { session: ProjectSession; position: number }[];
@@ -46,6 +47,7 @@ function SortableAccordionItem({
   onSessionClick: (session: ProjectSession) => void;
   onSessionUpdated: () => void;
   onSessionDeleted: (sessionId: string) => void;
+  allProjects?: import('../../../../types/app').Project[];
 }) {
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging,
@@ -92,6 +94,7 @@ function SortableAccordionItem({
                 onSessionClick={onSessionClick}
                 onSessionUpdated={onSessionUpdated}
                 onSessionDeleted={onSessionDeleted}
+                allProjects={allProjects}
               />
             ))}
           </div>
@@ -107,7 +110,7 @@ function SortableAccordionItem({
 
 export default function KanbanAccordionView({
   columns, sessionsByColumn, currentTime, projectName,
-  getLabelsForSession, onSessionClick, onSessionUpdated, onSessionDeleted, onMoveColumn,
+  getLabelsForSession, onSessionClick, onSessionUpdated, onSessionDeleted, onMoveColumn, allProjects,
 }: KanbanAccordionViewProps) {
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set(columns.map((c) => c.id)));
 
@@ -155,6 +158,7 @@ export default function KanbanAccordionView({
               onSessionClick={onSessionClick}
               onSessionUpdated={onSessionUpdated}
               onSessionDeleted={onSessionDeleted}
+              allProjects={allProjects}
             />
           ))}
         </SortableContext>

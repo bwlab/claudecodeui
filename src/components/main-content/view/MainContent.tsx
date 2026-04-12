@@ -170,6 +170,7 @@ function MainContent({
                   onNewSession={onNewSession}
                   onSessionUpdated={onSessionUpdated}
                   onSessionDeleted={onSessionDeleted}
+                  allProjects={projects}
                 />
               )}
             </ErrorBoundary>

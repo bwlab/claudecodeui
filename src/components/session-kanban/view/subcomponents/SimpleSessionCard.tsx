@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Clock, Pencil, Trash2, Check, X } from 'lucide-react';
+import { Clock, Pencil, Trash2, Check, X, FolderInput } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../../shared/view/ui';
 import { formatTimeAgo } from '../../../../utils/dateUtils';
 import { api } from '../../../../utils/api';
 import SessionProviderLogo from '../../../llm-logo-provider/SessionProviderLogo';
-import type { ProjectSession, SessionProvider } from '../../../../types/app';
+import type { Project, ProjectSession, SessionProvider } from '../../../../types/app';
 import type { SessionLabel } from '../../types/kanban';
 import LabelChip from './LabelChip';
+import MoveSessionDialog from './MoveSessionDialog';
 
 type SimpleSessionCardProps = {
   session: ProjectSession;
@@ -17,11 +18,12 @@ type SimpleSessionCardProps = {
   onSessionClick: (session: ProjectSession) => void;
   onSessionUpdated: () => void;
   onSessionDeleted: (sessionId: string) => void;
+  allProjects?: Project[];
 };
 
 export default function SimpleSessionCard({
   session, sessionLabels, currentTime, projectName,
-  onSessionClick, onSessionUpdated, onSessionDeleted,
+  onSessionClick, onSessionUpdated, onSessionDeleted, allProjects,
 }: SimpleSessionCardProps) {
   const { t } = useTranslation();
 
@@ -31,6 +33,7 @@ export default function SimpleSessionCard({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
 
   let isActive = false;
   if (timestamp) {
@@ -88,6 +91,16 @@ export default function SimpleSessionCard({
           <button type="button" onClick={(e) => { e.stopPropagation(); setEditValue(title); setIsEditing(true); }} className="flex h-6 w-6 items-center justify-center rounded bg-muted/80 hover:bg-accent" title="Rinomina">
             <Pencil className="h-3 w-3 text-muted-foreground" />
           </button>
+          {provider === 'claude' && allProjects && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowMoveDialog(true); }}
+              className="flex h-6 w-6 items-center justify-center rounded bg-muted/80 hover:bg-accent"
+              title="Sposta in un altro progetto"
+            >
+              <FolderInput className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
           <button type="button" onClick={handleDelete} className="flex h-6 w-6 items-center justify-center rounded bg-destructive/10 hover:bg-destructive/20" title="Elimina">
             <Trash2 className="h-3 w-3 text-destructive" />
           </button>
@@ -138,6 +151,17 @@ export default function SimpleSessionCard({
             <LabelChip key={label.id} name={label.label_name} color={label.color} />
           ))}
         </div>
+      )}
+
+      {showMoveDialog && allProjects && (
+        <MoveSessionDialog
+          session={session}
+          sessionTitle={title}
+          currentProjectName={projectName}
+          allProjects={allProjects}
+          onClose={() => setShowMoveDialog(false)}
+          onMoved={(sid) => { setShowMoveDialog(false); onSessionDeleted(sid); onSessionUpdated(); }}
+        />
       )}
     </div>
   );

@@ -44,7 +44,7 @@ import pty from 'node-pty';
 import fetch from 'node-fetch';
 import mime from 'mime-types';
 
-import { getProjects, getSessions, renameProject, deleteSession, deleteProject, addProjectManually, extractProjectDirectory, clearProjectDirectoryCache, searchConversations } from './projects.js';
+import { getProjects, getSessions, renameProject, deleteSession, moveClaudeSessionToProject, deleteProject, addProjectManually, extractProjectDirectory, clearProjectDirectoryCache, searchConversations } from './projects.js';
 import { queryClaudeSDK, abortClaudeSDKSession, isClaudeSDKSessionActive, getActiveClaudeSDKSessions, resolveToolApproval, getPendingApprovalsForSession, reconnectSessionWriter } from './claude-sdk.js';
 import { spawnCursor, abortCursorSession, isCursorSessionActive, getActiveCursorSessions } from './cursor-cli.js';
 import { queryCodex, abortCodexSession, isCodexSessionActive, getActiveCodexSessions } from './openai-codex.js';
@@ -555,6 +555,26 @@ app.delete('/api/projects/:projectName/sessions/:sessionId', authenticateToken, 
     } catch (error) {
         console.error(`[API] Error deleting session ${req.params.sessionId}:`, error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Move a Claude session to another project
+app.post('/api/projects/:projectName/sessions/:sessionId/move', authenticateToken, async (req, res) => {
+    try {
+        const { projectName, sessionId } = req.params;
+        const { targetProjectName } = req.body || {};
+        if (typeof targetProjectName !== 'string' || !targetProjectName.trim()) {
+            return res.status(400).json({ error: 'targetProjectName is required' });
+        }
+        if (targetProjectName === projectName) {
+            return res.status(400).json({ error: 'Source and target are the same' });
+        }
+        const result = await moveClaudeSessionToProject(projectName, sessionId, targetProjectName);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error(`[API] Error moving session ${req.params.sessionId}:`, error);
+        const status = /not found/i.test(error.message) ? 404 : /already exists/i.test(error.message) ? 409 : 500;
+        res.status(status).json({ error: error.message });
     }
 });
 
