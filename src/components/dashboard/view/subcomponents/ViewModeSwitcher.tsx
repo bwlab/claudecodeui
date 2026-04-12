@@ -1,12 +1,13 @@
 import { Columns3, List, LayoutGrid, Table2 } from 'lucide-react';
-import type { DashboardViewMode } from '../../types/dashboard';
+
+export type ViewMode = 'kanban' | 'accordion' | 'tabs' | 'grid';
 
 type ViewModeSwitcherProps = {
-  viewMode: DashboardViewMode;
-  onViewModeChange: (mode: DashboardViewMode) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
 };
 
-const modes: { mode: DashboardViewMode; icon: typeof Columns3; label: string }[] = [
+const modes: { mode: ViewMode; icon: typeof Columns3; label: string }[] = [
   { mode: 'kanban', icon: Columns3, label: 'Kanban' },
   { mode: 'accordion', icon: List, label: 'Accordion' },
   { mode: 'tabs', icon: Table2, label: 'Tab' },

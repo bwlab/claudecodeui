@@ -4,6 +4,10 @@ import type { Project, ProjectSession } from '../../../types/app';
 import { authenticatedFetch } from '../../../utils/api';
 import { useKanbanState } from '../hooks/useKanbanState';
 import KanbanBoard from './subcomponents/KanbanBoard';
+import KanbanAccordionView from './subcomponents/KanbanAccordionView';
+import KanbanTabsView from './subcomponents/KanbanTabsView';
+import KanbanGridView from './subcomponents/KanbanGridView';
+import ViewModeSwitcher, { type ViewMode } from '../../dashboard/view/subcomponents/ViewModeSwitcher';
 import ProjectSettingsPanel, { type ProjectSettingsTab } from '../../project-settings/view/ProjectSettingsPanel';
 
 type SessionKanbanProps = {
@@ -17,6 +21,16 @@ type SessionKanbanProps = {
 export default function SessionKanban({ project, onSessionClick, onNewSession, onSessionUpdated, onSessionDeleted }: SessionKanbanProps) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [settingsTab, setSettingsTab] = useState<ProjectSettingsTab | null>(null);
+  const viewModeKey = `session-kanban-view-${project.name}`;
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
+    const stored = localStorage.getItem(viewModeKey);
+    if (stored === 'kanban' || stored === 'accordion' || stored === 'tabs' || stored === 'grid') return stored;
+    return 'kanban';
+  });
+  const setViewMode = useCallback((mode: ViewMode) => {
+    localStorage.setItem(viewModeKey, mode);
+    setViewModeState(mode);
+  }, [viewModeKey]);
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -78,7 +92,8 @@ export default function SessionKanban({ project, onSessionClick, onNewSession, o
             </button>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <ViewModeSwitcher viewMode={viewMode} onViewModeChange={setViewMode} />
           <button
             type="button"
             onClick={async () => {
@@ -124,29 +139,67 @@ export default function SessionKanban({ project, onSessionClick, onNewSession, o
         </div>
       </div>
       <div className="flex-1 overflow-hidden">
-        <KanbanBoard
-          columns={kanban.columns}
-          sessionsByColumn={sessionsByColumn}
-          labels={kanban.labels}
-          currentTime={currentTime}
-          getNoteForSession={kanban.getNoteForSession}
-          getLabelsForSession={kanban.getLabelsForSession}
-          onAddColumn={kanban.addColumn}
-          onRenameColumn={kanban.renameColumn}
-          onDeleteColumn={kanban.removeColumn}
-          onMoveColumn={kanban.moveColumn}
-          onMoveSession={kanban.moveSession}
-          onSessionClick={handleSessionClick}
-          onNoteChange={kanban.setSessionNote}
-          onToggleLabel={kanban.toggleSessionLabel}
-          onCreateLabel={kanban.addLabel}
-          onEditLabel={kanban.editLabel}
-          onDeleteLabel={kanban.removeLabel}
-          onNewSession={onNewSession}
-          projectName={project.name}
-          onSessionUpdated={onSessionUpdated}
-          onSessionDeleted={onSessionDeleted}
-        />
+        {viewMode === 'kanban' && (
+          <KanbanBoard
+            columns={kanban.columns}
+            sessionsByColumn={sessionsByColumn}
+            labels={kanban.labels}
+            currentTime={currentTime}
+            getNoteForSession={kanban.getNoteForSession}
+            getLabelsForSession={kanban.getLabelsForSession}
+            onAddColumn={kanban.addColumn}
+            onRenameColumn={kanban.renameColumn}
+            onDeleteColumn={kanban.removeColumn}
+            onMoveColumn={kanban.moveColumn}
+            onMoveSession={kanban.moveSession}
+            onSessionClick={handleSessionClick}
+            onNoteChange={kanban.setSessionNote}
+            onToggleLabel={kanban.toggleSessionLabel}
+            onCreateLabel={kanban.addLabel}
+            onEditLabel={kanban.editLabel}
+            onDeleteLabel={kanban.removeLabel}
+            onNewSession={onNewSession}
+            projectName={project.name}
+            onSessionUpdated={onSessionUpdated}
+            onSessionDeleted={onSessionDeleted}
+          />
+        )}
+        {viewMode === 'accordion' && (
+          <KanbanAccordionView
+            columns={kanban.columns}
+            sessionsByColumn={sessionsByColumn}
+            currentTime={currentTime}
+            projectName={project.name}
+            getLabelsForSession={kanban.getLabelsForSession}
+            onSessionClick={handleSessionClick}
+            onSessionUpdated={onSessionUpdated}
+            onSessionDeleted={onSessionDeleted}
+          />
+        )}
+        {viewMode === 'tabs' && (
+          <KanbanTabsView
+            columns={kanban.columns}
+            sessionsByColumn={sessionsByColumn}
+            currentTime={currentTime}
+            projectName={project.name}
+            getLabelsForSession={kanban.getLabelsForSession}
+            onSessionClick={handleSessionClick}
+            onSessionUpdated={onSessionUpdated}
+            onSessionDeleted={onSessionDeleted}
+          />
+        )}
+        {viewMode === 'grid' && (
+          <KanbanGridView
+            columns={kanban.columns}
+            sessionsByColumn={sessionsByColumn}
+            currentTime={currentTime}
+            projectName={project.name}
+            getLabelsForSession={kanban.getLabelsForSession}
+            onSessionClick={handleSessionClick}
+            onSessionUpdated={onSessionUpdated}
+            onSessionDeleted={onSessionDeleted}
+          />
+        )}
       </div>
 
       <ProjectSettingsPanel
