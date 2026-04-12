@@ -17,6 +17,7 @@ import ClaudeStatus from './ClaudeStatus';
 import ImageAttachment from './ImageAttachment';
 import PermissionRequestsBanner from './PermissionRequestsBanner';
 import ChatInputControls from './ChatInputControls';
+import ChatStatusBar from './ChatStatusBar';
 
 interface MentionableFile {
   name: string;
@@ -93,6 +94,8 @@ interface ChatComposerProps {
   onBackToKanban?: () => void;
   selectedModel: string;
   onModelChange: (modelId: string) => void;
+  currentSessionId?: string | null;
+  appVersion?: string;
 }
 
 export default function ChatComposer({
@@ -152,6 +155,8 @@ export default function ChatComposer({
   onBackToKanban,
   selectedModel,
   onModelChange,
+  currentSessionId,
+  appVersion,
 }: ChatComposerProps) {
   const { t } = useTranslation('chat');
   const textareaRect = textareaRef.current?.getBoundingClientRect();
@@ -190,6 +195,19 @@ export default function ChatComposer({
           handlePermissionDecision={handlePermissionDecision}
           handleGrantToolPermission={handleGrantToolPermission}
         />
+
+        {!hasQuestionPanel && (
+          <div className="mb-2">
+            <ChatStatusBar
+              provider={provider}
+              selectedModel={selectedModel}
+              permissionMode={permissionMode}
+              tokenBudget={tokenBudget}
+              sessionId={currentSessionId}
+              appVersion={appVersion}
+            />
+          </div>
+        )}
 
         {!hasQuestionPanel && <ChatInputControls
           permissionMode={permissionMode}

@@ -420,6 +420,8 @@ function ChatInterface({
             else if (provider === 'gemini') { setGeminiModel(modelId); localStorage.setItem('gemini-model', modelId); }
             else { setClaudeModel(modelId); localStorage.setItem('claude-model', modelId); }
           }}
+          currentSessionId={currentSessionId ?? selectedSession?.id}
+          appVersion={import.meta.env.VITE_APP_VERSION as string | undefined}
         />
       </div>
 
