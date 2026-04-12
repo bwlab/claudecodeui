@@ -1,3 +1,4 @@
+import { FileText } from 'lucide-react';
 import { CLAUDE_MODELS, CODEX_MODELS, CURSOR_MODELS, GEMINI_MODELS, getContextWindowForModel } from '../../../../../shared/modelConstants';
 
 type Provider = 'claude' | 'cursor' | 'codex' | 'gemini';
@@ -9,6 +10,7 @@ type ChatStatusBarProps = {
   tokenBudget: { used?: number; total?: number } | null;
   sessionId?: string | null;
   appVersion?: string;
+  onOpenContext?: () => void;
 };
 
 function getModelLabel(provider: string, value: string): string {
@@ -42,6 +44,7 @@ export default function ChatStatusBar({
   tokenBudget,
   sessionId,
   appVersion,
+  onOpenContext,
 }: ChatStatusBarProps) {
   const modelLabel = getModelLabel(provider, selectedModel);
   const used = tokenBudget?.used ?? 0;
@@ -80,6 +83,18 @@ export default function ChatStatusBar({
           <span className="text-muted-foreground/60">|</span>
           <span>v{appVersion}</span>
         </>
+      )}
+
+      {onOpenContext && sessionId && (
+        <button
+          type="button"
+          onClick={onOpenContext}
+          className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title="Mostra contesto sessione (CLAUDE.md e testo iniziale)"
+        >
+          <FileText className="h-3 w-3" />
+          <span>contesto</span>
+        </button>
       )}
     </div>
   );

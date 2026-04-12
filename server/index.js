@@ -69,6 +69,7 @@ import messagesRoutes from './routes/messages.js';
 import kanbanRoutes from './routes/kanban.js';
 import dashboardRoutes from './routes/dashboards.js';
 import claudeTasksRoutes from './routes/claude-tasks.js';
+import sessionContextRoutes from './routes/session-context.js';
 import { createNormalizedMessage } from './providers/types.js';
 import { startEnabledPluginServers, stopAllPlugins, getPluginPort } from './utils/plugin-process-manager.js';
 import { initializeDatabase, sessionNamesDb, applyCustomSessionNames } from './database/db.js';
@@ -408,6 +409,7 @@ app.use('/api/sessions', authenticateToken, messagesRoutes);
 app.use('/api/kanban', authenticateToken, kanbanRoutes);
 app.use('/api/dashboards', authenticateToken, dashboardRoutes);
 app.use('/api/claude-tasks', authenticateToken, claudeTasksRoutes);
+app.use('/api/session-context', authenticateToken, sessionContextRoutes);
 
 // Agent API Routes (uses API key authentication)
 app.use('/api/agent', agentRoutes);

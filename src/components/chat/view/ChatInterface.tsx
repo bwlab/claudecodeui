@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTasksSettings } from '../../../contexts/TasksSettingsContext';
 import { QuickSettingsPanel } from '../../quick-settings-panel';
@@ -11,6 +11,7 @@ import { useChatComposerState } from '../hooks/useChatComposerState';
 import { useSessionStore } from '../../../stores/useSessionStore';
 import ChatMessagesPane from './subcomponents/ChatMessagesPane';
 import ChatComposer from './subcomponents/ChatComposer';
+import SessionContextPanel from './subcomponents/SessionContextPanel';
 
 
 type PendingViewSession = {
@@ -48,6 +49,7 @@ function ChatInterface({
 
   const sessionStore = useSessionStore();
   const streamBufferRef = useRef('');
+  const [isContextOpen, setIsContextOpen] = useState(false);
   const streamTimerRef = useRef<number | null>(null);
   const accumulatedStreamRef = useRef('');
   const pendingViewSessionRef = useRef<PendingViewSession | null>(null);
@@ -422,10 +424,18 @@ function ChatInterface({
           }}
           currentSessionId={currentSessionId ?? selectedSession?.id}
           appVersion={import.meta.env.VITE_APP_VERSION as string | undefined}
+          onOpenContext={() => setIsContextOpen(true)}
         />
       </div>
 
       <QuickSettingsPanel />
+
+      <SessionContextPanel
+        isOpen={isContextOpen}
+        onClose={() => setIsContextOpen(false)}
+        sessionId={currentSessionId ?? selectedSession?.id ?? null}
+        projectPath={selectedProject?.fullPath || selectedProject?.path || null}
+      />
     </>
   );
 }

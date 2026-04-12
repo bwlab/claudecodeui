@@ -96,6 +96,7 @@ interface ChatComposerProps {
   onModelChange: (modelId: string) => void;
   currentSessionId?: string | null;
   appVersion?: string;
+  onOpenContext?: () => void;
 }
 
 export default function ChatComposer({
@@ -157,6 +158,7 @@ export default function ChatComposer({
   onModelChange,
   currentSessionId,
   appVersion,
+  onOpenContext,
 }: ChatComposerProps) {
   const { t } = useTranslation('chat');
   const textareaRect = textareaRef.current?.getBoundingClientRect();
@@ -370,6 +372,7 @@ export default function ChatComposer({
             tokenBudget={tokenBudget}
             sessionId={currentSessionId}
             appVersion={appVersion}
+            onOpenContext={onOpenContext}
           />
         </div>
       )}
