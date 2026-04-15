@@ -1,4 +1,4 @@
-export type DashboardViewMode = 'kanban' | 'accordion' | 'tabs' | 'grid';
+export type DashboardViewMode = 'kanban' | 'accordion' | 'tabs' | 'grid' | 'tree';
 export type DashboardSortMode = 'alpha' | 'last_activity' | 'manual';
 
 export interface Dashboard {

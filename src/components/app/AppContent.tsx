@@ -67,13 +67,27 @@ export default function AppContent() {
   const [singleProjectMode, setSingleProjectMode] = useState(false);
 
   useEffect(() => {
-    dashboardApi.getDefaultDashboardId().then((id) => {
+    let cancelled = false;
+    (async () => {
+      const id = await dashboardApi.getDefaultDashboardId();
+      if (cancelled) return;
       if (id) {
         setActiveDashboardId(id);
         setLastDashboardId(id);
+      } else {
+        // No default dashboard: use first available as breadcrumb fallback
+        // (do not auto-activate, just remember for contextual UI).
+        try {
+          const dashboards = await dashboardApi.getDashboards();
+          if (cancelled) return;
+          if (dashboards.length > 0) {
+            setLastDashboardId(dashboards[0].id);
+          }
+        } catch { /* ignore */ }
       }
       setDashboardChecked(true);
-    });
+    })();
+    return () => { cancelled = true; };
   }, [dashboardApi]);
 
   const handleDashboardSelect = useCallback((id: number | null) => {
@@ -104,6 +118,11 @@ export default function AppContent() {
     handleBackToKanban();
     setActiveDashboardId(dashboardId);
     setLastDashboardId(dashboardId);
+    // Notify any already-mounted useDashboardState to update its path state
+    // (React won't remount DashboardView if activeDashboardId didn't change).
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dashboard-set-path', { detail: { dashboardId, path } }));
+    }
   }, [handleBackToKanban]);
 
   const [dashboardSidebarCollapsed, setDashboardSidebarCollapsed] = useState<boolean>(() => {
@@ -221,7 +240,6 @@ export default function AppContent() {
 
   const dashboardSidebarVisible = !isMobile && (activeDashboardId !== null || lastDashboardId !== null);
   const dashboardSidebarActiveId = activeDashboardId ?? lastDashboardId;
-  const dashboardSidebarForceCollapsed = !!selectedProject && activeDashboardId === null;
 
   return (
     <div className="fixed inset-0 flex bg-background">
@@ -231,7 +249,10 @@ export default function AppContent() {
           onDashboardSelect={handleDashboardSelect}
           isCollapsed={dashboardSidebarCollapsed}
           onToggleCollapse={handleToggleDashboardSidebar}
-          forceCollapsed={dashboardSidebarForceCollapsed}
+          projects={projects}
+          onProjectSelect={handleProjectSelectFromDashboard}
+          onNavigateToDashboardPath={handleNavigateToDashboardPath}
+          selectedProjectName={selectedProject?.name ?? null}
         />
       )}
 

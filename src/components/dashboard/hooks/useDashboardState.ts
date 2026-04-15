@@ -41,6 +41,20 @@ export function useDashboardState(dashboardId: number, projects: Project[]) {
     }
   }, [dashboardId]);
 
+  // Listen for external path change requests (e.g. from sidebar tree clicks)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { dashboardId?: number; path?: number[] } | undefined;
+      if (!detail || detail.dashboardId !== dashboardId) return;
+      const nextPath = Array.isArray(detail.path) ? detail.path : [];
+      setCurrentPathState(nextPath);
+      saveStoredPath(dashboardId, nextPath);
+    };
+    window.addEventListener('dashboard-set-path', handler);
+    return () => window.removeEventListener('dashboard-set-path', handler);
+  }, [dashboardId]);
+
   const reload = useCallback(async () => {
     setLoading(true);
     const data = await api.getFullDashboard(dashboardId);

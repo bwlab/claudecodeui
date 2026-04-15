@@ -1,6 +1,6 @@
-import { Columns3, List, LayoutGrid, Table2 } from 'lucide-react';
+import { Columns3, List, LayoutGrid, Table2, FolderTree } from 'lucide-react';
 
-export type ViewMode = 'kanban' | 'accordion' | 'tabs' | 'grid';
+export type ViewMode = 'kanban' | 'accordion' | 'tabs' | 'grid' | 'tree';
 
 type ViewModeSwitcherProps = {
   viewMode: ViewMode;
@@ -12,6 +12,7 @@ const modes: { mode: ViewMode; icon: typeof Columns3; label: string }[] = [
   { mode: 'accordion', icon: List, label: 'Accordion' },
   { mode: 'tabs', icon: Table2, label: 'Tab' },
   { mode: 'grid', icon: LayoutGrid, label: 'Griglia' },
+  { mode: 'tree', icon: FolderTree, label: 'Albero' },
 ];
 
 export default function ViewModeSwitcher({ viewMode, onViewModeChange }: ViewModeSwitcherProps) {

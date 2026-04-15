@@ -8,6 +8,7 @@ import DashboardKanbanView from './subcomponents/DashboardKanbanView';
 import DashboardAccordionView from './subcomponents/DashboardAccordionView';
 import DashboardTabsView from './subcomponents/DashboardTabsView';
 import DashboardGridView from './subcomponents/DashboardGridView';
+import DashboardTreeView from './subcomponents/DashboardTreeView';
 import ViewModeSwitcher from './subcomponents/ViewModeSwitcher';
 import RaccoglitoreBreadcrumb from './subcomponents/RaccoglitoreBreadcrumb';
 
@@ -89,6 +90,26 @@ export default function DashboardView({ dashboardId, projects, onProjectClick }:
         {state.dashboard.view_mode === 'accordion' && <DashboardAccordionView {...legacyViewProps} />}
         {state.dashboard.view_mode === 'tabs' && <DashboardTabsView {...legacyViewProps} />}
         {state.dashboard.view_mode === 'grid' && <DashboardGridView {...legacyViewProps} />}
+        {state.dashboard.view_mode === 'tree' && (
+          <DashboardTreeView
+            tree={state.tree}
+            currentPath={state.currentPath}
+            currentNode={state.currentNode}
+            currentChildren={state.currentChildren}
+            projectsByRaccoglitore={state.projectsByRaccoglitore}
+            onProjectClick={onProjectClick}
+            onSetPath={state.setCurrentPath}
+            onAddRaccoglitore={(name, options) => state.addRaccoglitore(name, options)}
+            onUpdateRaccoglitore={state.updateRaccoglitore}
+            onDeleteRaccoglitore={(rid, options) => state.deleteRaccoglitore(rid, options)}
+            onMoveRaccoglitore={state.moveRaccoglitore}
+            onAssignProject={state.assignProject}
+            onRemoveProject={state.removeProject}
+            onMoveProjectAssignment={state.moveProjectAssignment}
+            allProjects={projects}
+            taskSummary={taskSummary}
+          />
+        )}
       </div>
     </div>
   );

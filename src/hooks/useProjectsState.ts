@@ -375,14 +375,43 @@ export function useProjectsState({
   const handleProjectSelect = useCallback(
     (project: Project) => {
       setSelectedProject(project);
-      setSelectedSession(null);
-      navigate('/');
+
+      const allSessions: ProjectSession[] = [
+        ...(project.sessions ?? []),
+        ...(project.cursorSessions ?? []),
+        ...(project.codexSessions ?? []),
+        ...(project.geminiSessions ?? []),
+      ];
+      const latest = allSessions
+        .map((s) => {
+          const raw = s.updated_at || s.lastActivity || s.createdAt || s.created_at;
+          const t = raw ? new Date(raw as string).getTime() : NaN;
+          return { s, t };
+        })
+        .filter((x) => !isNaN(x.t))
+        .sort((a, b) => b.t - a.t)[0]?.s;
+
+      if (latest) {
+        setSelectedSession(latest);
+        setIsNewSession(false);
+        setActiveTab('chat');
+        const provider = localStorage.getItem('selected-provider') || 'claude';
+        if (provider === 'cursor') {
+          sessionStorage.setItem('cursorSessionId', latest.id);
+        }
+        navigate(`/session/${latest.id}`);
+      } else {
+        setSelectedSession(null);
+        setIsNewSession(true);
+        setActiveTab('chat');
+        navigate('/');
+      }
 
       if (isMobile) {
         setSidebarOpen(false);
       }
     },
-    [isMobile, navigate],
+    [isMobile, navigate, setActiveTab],
   );
 
   const handleSessionSelect = useCallback(
