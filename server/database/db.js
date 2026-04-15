@@ -209,15 +209,32 @@ const runMigrations = () => {
     db.exec(`CREATE TABLE IF NOT EXISTS dashboard_raccoglitori (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       dashboard_id INTEGER NOT NULL,
+      parent_id INTEGER,
+      depth INTEGER NOT NULL DEFAULT 0,
       name TEXT NOT NULL,
       color TEXT NOT NULL DEFAULT '#3b82f6',
       icon TEXT NOT NULL DEFAULT 'Folder',
       notes TEXT DEFAULT '',
       position INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+      FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_id) REFERENCES dashboard_raccoglitori(id) ON DELETE CASCADE
     )`);
     db.exec('CREATE INDEX IF NOT EXISTS idx_raccoglitori_dashboard ON dashboard_raccoglitori(dashboard_id)');
+
+    // Migration: add parent_id/depth to existing dashboard_raccoglitori tables
+    const raccoglitoriInfo = db.prepare("PRAGMA table_info(dashboard_raccoglitori)").all();
+    const raccoglitoriCols = raccoglitoriInfo.map(col => col.name);
+    if (!raccoglitoriCols.includes('parent_id')) {
+      console.log('Running migration: Adding parent_id column to dashboard_raccoglitori');
+      db.exec('ALTER TABLE dashboard_raccoglitori ADD COLUMN parent_id INTEGER REFERENCES dashboard_raccoglitori(id) ON DELETE CASCADE');
+    }
+    if (!raccoglitoriCols.includes('depth')) {
+      console.log('Running migration: Adding depth column to dashboard_raccoglitori');
+      db.exec('ALTER TABLE dashboard_raccoglitori ADD COLUMN depth INTEGER NOT NULL DEFAULT 0');
+    }
+    db.exec('CREATE INDEX IF NOT EXISTS idx_raccoglitori_parent ON dashboard_raccoglitori(parent_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_raccoglitori_dashboard_parent ON dashboard_raccoglitori(dashboard_id, parent_id)');
 
     db.exec(`CREATE TABLE IF NOT EXISTS dashboard_project_assignments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -228,6 +245,15 @@ const runMigrations = () => {
     )`);
     db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_dpa_unique ON dashboard_project_assignments(raccoglitore_id, project_name)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_dpa_raccoglitore ON dashboard_project_assignments(raccoglitore_id)');
+
+    // Session archives
+    db.exec(`CREATE TABLE IF NOT EXISTS session_archives (
+      session_id TEXT NOT NULL,
+      project_name TEXT NOT NULL,
+      archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (session_id, project_name)
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_session_archives_project ON session_archives(project_name)');
 
     console.log('Database migrations completed successfully');
   } catch (error) {
@@ -813,6 +839,31 @@ const kanbanDb = {
 
     return { columns, assignments, notes, labels, labelAssignments };
   },
+
+  getArchivedSessions: (projectName) => {
+    return db.prepare(
+      'SELECT session_id, archived_at FROM session_archives WHERE project_name = ? ORDER BY archived_at DESC'
+    ).all(projectName);
+  },
+
+  archiveSession: (projectName, sessionId) => {
+    db.prepare(
+      'INSERT OR IGNORE INTO session_archives (session_id, project_name) VALUES (?, ?)'
+    ).run(sessionId, projectName);
+  },
+
+  unarchiveSession: (projectName, sessionId) => {
+    db.prepare(
+      'DELETE FROM session_archives WHERE session_id = ? AND project_name = ?'
+    ).run(sessionId, projectName);
+  },
+
+  isSessionArchived: (projectName, sessionId) => {
+    const row = db.prepare(
+      'SELECT 1 FROM session_archives WHERE session_id = ? AND project_name = ?'
+    ).get(sessionId, projectName);
+    return !!row;
+  },
 };
 
 const dashboardDb = {
@@ -878,21 +929,67 @@ const dashboardDb = {
   },
 
   // --- Raccoglitori CRUD ---
+  MAX_RACCOGLITORE_DEPTH: 2,
+
   getRaccoglitori: (dashboardId) => {
     return db.prepare(
-      'SELECT id, dashboard_id, name, color, icon, notes, position FROM dashboard_raccoglitori WHERE dashboard_id = ? ORDER BY position'
+      'SELECT id, dashboard_id, parent_id, depth, name, color, icon, notes, position FROM dashboard_raccoglitori WHERE dashboard_id = ? ORDER BY position'
     ).all(dashboardId);
   },
 
-  createRaccoglitore: (dashboardId, { name, color = '#3b82f6', icon = 'Folder', notes = '' }) => {
+  getRaccoglitore: (id) => {
+    return db.prepare(
+      'SELECT id, dashboard_id, parent_id, depth, name, color, icon, notes, position FROM dashboard_raccoglitori WHERE id = ?'
+    ).get(id);
+  },
+
+  getSubtreeDepth: (id) => {
+    const row = db.prepare(`
+      WITH RECURSIVE subtree(id, d) AS (
+        SELECT id, 0 FROM dashboard_raccoglitori WHERE id = ?
+        UNION ALL
+        SELECT r.id, s.d + 1
+        FROM dashboard_raccoglitori r
+        JOIN subtree s ON r.parent_id = s.id
+      )
+      SELECT COALESCE(MAX(d), 0) AS maxDepth FROM subtree
+    `).get(id);
+    return row?.maxDepth ?? 0;
+  },
+
+  isDescendant: (candidateAncestorId, nodeId) => {
+    if (candidateAncestorId === nodeId) return true;
+    const row = db.prepare(`
+      WITH RECURSIVE ancestors(id) AS (
+        SELECT parent_id FROM dashboard_raccoglitori WHERE id = ?
+        UNION ALL
+        SELECT r.parent_id FROM dashboard_raccoglitori r
+        JOIN ancestors a ON r.id = a.id
+        WHERE r.parent_id IS NOT NULL
+      )
+      SELECT 1 AS hit FROM ancestors WHERE id = ? LIMIT 1
+    `).get(nodeId, candidateAncestorId);
+    return !!row;
+  },
+
+  createRaccoglitore: (dashboardId, { name, color = '#3b82f6', icon = 'Folder', notes = '', parent_id = null }) => {
+    let depth = 0;
+    let normalizedParentId = parent_id ?? null;
+    if (normalizedParentId !== null) {
+      const parent = dashboardDb.getRaccoglitore(normalizedParentId);
+      if (!parent) throw new Error('Parent raccoglitore not found');
+      if (parent.dashboard_id !== dashboardId) throw new Error('Parent belongs to a different dashboard');
+      if (parent.depth >= dashboardDb.MAX_RACCOGLITORE_DEPTH) throw new Error('Max nesting depth reached');
+      depth = parent.depth + 1;
+    }
     const maxPos = db.prepare(
-      'SELECT COALESCE(MAX(position), -1) as maxPos FROM dashboard_raccoglitori WHERE dashboard_id = ?'
-    ).get(dashboardId);
+      'SELECT COALESCE(MAX(position), -1) as maxPos FROM dashboard_raccoglitori WHERE dashboard_id = ? AND ((parent_id IS NULL AND ? IS NULL) OR parent_id = ?)'
+    ).get(dashboardId, normalizedParentId, normalizedParentId);
     const position = (maxPos?.maxPos ?? -1) + 1;
     const result = db.prepare(
-      'INSERT INTO dashboard_raccoglitori (dashboard_id, name, color, icon, notes, position) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(dashboardId, name, color, icon, notes, position);
-    return { id: result.lastInsertRowid, dashboard_id: dashboardId, name, color, icon, notes, position };
+      'INSERT INTO dashboard_raccoglitori (dashboard_id, parent_id, depth, name, color, icon, notes, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(dashboardId, normalizedParentId, depth, name, color, icon, notes, position);
+    return { id: result.lastInsertRowid, dashboard_id: dashboardId, parent_id: normalizedParentId, depth, name, color, icon, notes, position };
   },
 
   updateRaccoglitore: (id, updates) => {
@@ -909,7 +1006,58 @@ const dashboardDb = {
     db.prepare(`UPDATE dashboard_raccoglitori SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   },
 
-  deleteRaccoglitore: (id) => {
+  moveRaccoglitore: (id, { parent_id = null, position = null } = {}) => {
+    const node = dashboardDb.getRaccoglitore(id);
+    if (!node) throw new Error('Raccoglitore not found');
+    const newParentId = parent_id ?? null;
+    let newParentDepth = -1;
+    if (newParentId !== null) {
+      const parent = dashboardDb.getRaccoglitore(newParentId);
+      if (!parent) throw new Error('Target parent not found');
+      if (parent.dashboard_id !== node.dashboard_id) throw new Error('Cannot move across dashboards');
+      if (dashboardDb.isDescendant(newParentId, id)) throw new Error('Cannot move a raccoglitore under its own descendant');
+      newParentDepth = parent.depth;
+    }
+    const subtreeDepth = dashboardDb.getSubtreeDepth(id);
+    const newNodeDepth = newParentDepth + 1;
+    if (newNodeDepth + subtreeDepth > dashboardDb.MAX_RACCOGLITORE_DEPTH) {
+      throw new Error('Move would exceed max nesting depth');
+    }
+    const depthDelta = newNodeDepth - node.depth;
+    const transaction = db.transaction(() => {
+      let finalPosition = position;
+      if (finalPosition === null || finalPosition === undefined) {
+        const maxPos = db.prepare(
+          'SELECT COALESCE(MAX(position), -1) AS maxPos FROM dashboard_raccoglitori WHERE dashboard_id = ? AND ((parent_id IS NULL AND ? IS NULL) OR parent_id = ?) AND id != ?'
+        ).get(node.dashboard_id, newParentId, newParentId, id);
+        finalPosition = (maxPos?.maxPos ?? -1) + 1;
+      }
+      db.prepare('UPDATE dashboard_raccoglitori SET parent_id = ?, depth = ?, position = ? WHERE id = ?')
+        .run(newParentId, newNodeDepth, finalPosition, id);
+      if (depthDelta !== 0) {
+        db.prepare(`
+          WITH RECURSIVE descendants(id) AS (
+            SELECT id FROM dashboard_raccoglitori WHERE parent_id = ?
+            UNION ALL
+            SELECT r.id FROM dashboard_raccoglitori r JOIN descendants d ON r.parent_id = d.id
+          )
+          UPDATE dashboard_raccoglitori SET depth = depth + ? WHERE id IN (SELECT id FROM descendants)
+        `).run(id, depthDelta);
+      }
+    });
+    transaction();
+    return dashboardDb.getRaccoglitore(id);
+  },
+
+  deleteRaccoglitore: (id, { reparent = false } = {}) => {
+    const node = dashboardDb.getRaccoglitore(id);
+    if (!node) return;
+    if (reparent) {
+      const children = db.prepare('SELECT id FROM dashboard_raccoglitori WHERE parent_id = ?').all(id);
+      for (const child of children) {
+        dashboardDb.moveRaccoglitore(child.id, { parent_id: node.parent_id, position: null });
+      }
+    }
     db.prepare('DELETE FROM dashboard_raccoglitori WHERE id = ?').run(id);
   },
 

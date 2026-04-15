@@ -4,6 +4,7 @@ import type { MainContentHeaderProps } from '../../types/types';
 import MobileMenuButton from './MobileMenuButton';
 import MainContentTabSwitcher from './MainContentTabSwitcher';
 import MainContentTitle from './MainContentTitle';
+import ProjectBreadcrumb from './ProjectBreadcrumb';
 
 export default function MainContentHeader({
   activeTab,
@@ -15,8 +16,15 @@ export default function MainContentHeader({
   onMenuClick,
   onBackToKanban,
   activeDashboardId,
+  effectiveDashboardId,
   onDashboardSelect,
+  onNavigateToDashboardPath,
+  hideDashboardSelector,
 }: MainContentHeaderProps) {
+  const breadcrumbDashboardId = activeDashboardId !== null
+    ? null // dashboard already visible — no need to show breadcrumb
+    : effectiveDashboardId ?? null;
+
   return (
     <div className="pwa-header-safe flex-shrink-0 border-b border-border/60 bg-background px-3 py-1.5 sm:px-4 sm:py-2">
       <div className="flex items-center justify-between gap-3">
@@ -32,7 +40,9 @@ export default function MainContentHeader({
           )}
         </div>
 
-        <DashboardSelector activeDashboardId={activeDashboardId} onDashboardSelect={onDashboardSelect} />
+        {!hideDashboardSelector && !activeDashboardId && (
+          <DashboardSelector activeDashboardId={activeDashboardId} onDashboardSelect={onDashboardSelect} />
+        )}
 
         {onBackToKanban && (
           <button
@@ -55,6 +65,14 @@ export default function MainContentHeader({
           </div>
         )}
       </div>
+      {selectedProject && breadcrumbDashboardId !== null && (
+        <ProjectBreadcrumb
+          dashboardId={breadcrumbDashboardId}
+          projectName={selectedProject.name}
+          projectDisplayName={selectedProject.displayName || selectedProject.name}
+          onNavigate={onNavigateToDashboardPath}
+        />
+      )}
     </div>
   );
 }

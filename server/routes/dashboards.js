@@ -108,17 +108,37 @@ router.put('/:id/default', (req, res) => {
 // POST create raccoglitore
 router.post('/:id/raccoglitori', (req, res) => {
   try {
-    const { name, color, icon, notes } = req.body;
+    const { name, color, icon, notes, parent_id } = req.body;
     if (!name?.trim()) {
       return res.status(400).json({ error: 'Raccoglitore name is required' });
     }
     const raccoglitore = dashboardDb.createRaccoglitore(Number(req.params.id), {
       name: name.trim(), color, icon, notes,
+      parent_id: parent_id ?? null,
     });
     res.json({ success: true, raccoglitore });
   } catch (error) {
     console.error('Error creating raccoglitore:', error);
-    res.status(500).json({ error: 'Failed to create raccoglitore' });
+    const msg = error?.message || 'Failed to create raccoglitore';
+    const code = /not found|different dashboard|depth/i.test(msg) ? 400 : 500;
+    res.status(code).json({ error: msg });
+  }
+});
+
+// PATCH move raccoglitore (change parent and/or position)
+router.patch('/:id/raccoglitori/:rid/move', (req, res) => {
+  try {
+    const { parent_id, position } = req.body;
+    const raccoglitore = dashboardDb.moveRaccoglitore(Number(req.params.rid), {
+      parent_id: parent_id ?? null,
+      position: position ?? null,
+    });
+    res.json({ success: true, raccoglitore });
+  } catch (error) {
+    console.error('Error moving raccoglitore:', error);
+    const msg = error?.message || 'Failed to move raccoglitore';
+    const code = /not found|descendant|dashboards|depth/i.test(msg) ? 400 : 500;
+    res.status(code).json({ error: msg });
   }
 });
 
@@ -134,10 +154,11 @@ router.put('/:id/raccoglitori/:rid', (req, res) => {
   }
 });
 
-// DELETE raccoglitore
+// DELETE raccoglitore (optional ?reparent=true moves children up one level)
 router.delete('/:id/raccoglitori/:rid', (req, res) => {
   try {
-    dashboardDb.deleteRaccoglitore(Number(req.params.rid));
+    const reparent = req.query.reparent === 'true' || req.query.reparent === '1';
+    dashboardDb.deleteRaccoglitore(Number(req.params.rid), { reparent });
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting raccoglitore:', error);

@@ -59,10 +59,13 @@ export type MainContentProps = {
   onShowSettings: () => void;
   externalMessageUpdate: number;
   activeDashboardId: number | null;
+  effectiveDashboardId: number | null;
   dashboardChecked: boolean;
   onDashboardSelect: (id: number | null) => void;
+  onNavigateToDashboardPath?: (dashboardId: number, path: number[]) => void;
   projects: Project[];
   onProjectSelect: (project: Project) => void;
+  hideDashboardSelector?: boolean;
 };
 
 export type MainContentHeaderProps = {
@@ -75,7 +78,10 @@ export type MainContentHeaderProps = {
   onMenuClick: () => void;
   onBackToKanban?: () => void;
   activeDashboardId: number | null;
+  effectiveDashboardId?: number | null;
   onDashboardSelect: (id: number | null) => void;
+  onNavigateToDashboardPath?: (dashboardId: number, path: number[]) => void;
+  hideDashboardSelector?: boolean;
 };
 
 export type MainContentStateViewProps = {

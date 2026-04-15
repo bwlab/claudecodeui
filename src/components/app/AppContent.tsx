@@ -8,7 +8,10 @@ import { useDeviceSettings } from '../../hooks/useDeviceSettings';
 import { useSessionProtection } from '../../hooks/useSessionProtection';
 import { useProjectsState } from '../../hooks/useProjectsState';
 import { useDashboardApi } from '../dashboard/hooks/useDashboardApi';
+import DashboardSidebar from '../dashboard/view/DashboardSidebar';
 import CommandPalette from '../command-palette/CommandPalette';
+
+const DASHBOARD_SIDEBAR_COLLAPSED_KEY = 'dashboard-sidebar-collapsed';
 
 export default function AppContent() {
   const navigate = useNavigate();
@@ -59,12 +62,16 @@ export default function AppContent() {
   // Dashboard state
   const dashboardApi = useDashboardApi();
   const [activeDashboardId, setActiveDashboardId] = useState<number | null>(null);
+  const [lastDashboardId, setLastDashboardId] = useState<number | null>(null);
   const [dashboardChecked, setDashboardChecked] = useState(false);
   const [singleProjectMode, setSingleProjectMode] = useState(false);
 
   useEffect(() => {
     dashboardApi.getDefaultDashboardId().then((id) => {
-      if (id) setActiveDashboardId(id);
+      if (id) {
+        setActiveDashboardId(id);
+        setLastDashboardId(id);
+      }
       setDashboardChecked(true);
     });
   }, [dashboardApi]);
@@ -72,10 +79,48 @@ export default function AppContent() {
   const handleDashboardSelect = useCallback((id: number | null) => {
     setActiveDashboardId(id);
     if (id !== null) {
+      setLastDashboardId(id);
       // When entering a dashboard, clear session state
       handleBackToKanban();
+    } else {
+      setLastDashboardId(null);
     }
   }, [handleBackToKanban]);
+
+  const handleProjectSelectFromDashboard = useCallback((project: Parameters<typeof handleProjectSelect>[0]) => {
+    if (activeDashboardId !== null) setLastDashboardId(activeDashboardId);
+    setActiveDashboardId(null);
+    setSingleProjectMode(true);
+    handleProjectSelect(project);
+  }, [activeDashboardId, handleProjectSelect]);
+
+  const handleNavigateToDashboardPath = useCallback((dashboardId: number, path: number[]) => {
+    try {
+      const key = `dashboard:${dashboardId}:path`;
+      if (path.length === 0) window.localStorage.removeItem(key);
+      else window.localStorage.setItem(key, JSON.stringify(path));
+    } catch { /* ignore */ }
+    setSingleProjectMode(false);
+    handleBackToKanban();
+    setActiveDashboardId(dashboardId);
+    setLastDashboardId(dashboardId);
+  }, [handleBackToKanban]);
+
+  const [dashboardSidebarCollapsed, setDashboardSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(DASHBOARD_SIDEBAR_COLLAPSED_KEY) === 'true';
+  });
+  const handleToggleDashboardSidebar = useCallback(() => {
+    setDashboardSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(DASHBOARD_SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        /* ignore storage errors */
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     // Expose a non-blocking refresh for chat/session flows.
@@ -174,8 +219,22 @@ export default function AppContent() {
     };
   }, [singleProjectMode, selectedProject, sidebarSharedProps, projects]);
 
+  const dashboardSidebarVisible = !isMobile && (activeDashboardId !== null || lastDashboardId !== null);
+  const dashboardSidebarActiveId = activeDashboardId ?? lastDashboardId;
+  const dashboardSidebarForceCollapsed = !!selectedProject && activeDashboardId === null;
+
   return (
     <div className="fixed inset-0 flex bg-background">
+      {dashboardSidebarVisible && (
+        <DashboardSidebar
+          activeDashboardId={dashboardSidebarActiveId}
+          onDashboardSelect={handleDashboardSelect}
+          isCollapsed={dashboardSidebarCollapsed}
+          onToggleCollapse={handleToggleDashboardSidebar}
+          forceCollapsed={dashboardSidebarForceCollapsed}
+        />
+      )}
+
       {!isMobile && !activeDashboardId ? (
         <div className="h-full flex-shrink-0 border-r border-border/50">
           <Sidebar {...filteredSidebarProps} singleProjectMode={singleProjectMode} onToggleAllProjects={() => setSingleProjectMode(false)} />
@@ -237,17 +296,25 @@ export default function AppContent() {
           onShowSettings={() => setShowSettings(true)}
           externalMessageUpdate={externalMessageUpdate}
           activeDashboardId={activeDashboardId}
+          effectiveDashboardId={activeDashboardId ?? lastDashboardId}
           dashboardChecked={dashboardChecked}
           onDashboardSelect={handleDashboardSelect}
+          onNavigateToDashboardPath={handleNavigateToDashboardPath}
           projects={projects}
-          onProjectSelect={(project) => { setActiveDashboardId(null); setSingleProjectMode(true); handleProjectSelect(project); }}
+          onProjectSelect={handleProjectSelectFromDashboard}
+          hideDashboardSelector={dashboardSidebarVisible}
         />
       </div>
 
       <CommandPalette
         projects={projects}
-        onProjectSelect={(project) => { setActiveDashboardId(null); setSingleProjectMode(true); handleProjectSelect(project); }}
-        onSessionSelect={(session) => { setActiveDashboardId(null); setSingleProjectMode(true); navigate(`/session/${session.id}`); }}
+        onProjectSelect={handleProjectSelectFromDashboard}
+        onSessionSelect={(session) => {
+          if (activeDashboardId !== null) setLastDashboardId(activeDashboardId);
+          setActiveDashboardId(null);
+          setSingleProjectMode(true);
+          navigate(`/session/${session.id}`);
+        }}
       />
     </div>
   );

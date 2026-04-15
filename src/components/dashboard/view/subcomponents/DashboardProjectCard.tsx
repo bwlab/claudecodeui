@@ -1,14 +1,19 @@
 import { useState, useRef } from 'react';
-import { Clock, MessageSquare, Folder, FolderOpen, Code, PlayCircle, CheckCircle2, CircleDot, Pencil, Check, X } from 'lucide-react';
+import { Clock, MessageSquare, Folder, FolderOpen, Code, PlayCircle, CheckCircle2, CircleDot, Pencil, Check, X, FolderSymlink } from 'lucide-react';
 import type { Project } from '../../../../types/app';
+import type { RaccoglitoreNode } from '../../types/dashboard';
 import { authenticatedFetch, api } from '../../../../utils/api';
 import type { ClaudeTaskSummary } from '../../../claude-tasks/types/claude-tasks';
+import MoveProjectDialog from './MoveProjectDialog';
 
 type DashboardProjectCardProps = {
   project: Project;
   onClick: (project: Project) => void;
   taskSummary?: ClaudeTaskSummary;
   onPathUpdated?: (projectName: string, newPath: string) => void;
+  currentRaccoglitoreId?: number;
+  tree?: RaccoglitoreNode[];
+  onMoveProject?: (fromRid: number, toRid: number, projectName: string) => Promise<void> | void;
 };
 
 function getSessionCount(project: Project): number {
@@ -55,7 +60,7 @@ function getProviders(project: Project): string[] {
   return providers;
 }
 
-export default function DashboardProjectCard({ project, onClick, taskSummary, onPathUpdated }: DashboardProjectCardProps) {
+export default function DashboardProjectCard({ project, onClick, taskSummary, onPathUpdated, currentRaccoglitoreId, tree, onMoveProject }: DashboardProjectCardProps) {
   const sessionCount = getSessionCount(project);
   const lastActivity = getLastActivity(project);
   const providers = getProviders(project);
@@ -64,7 +69,10 @@ export default function DashboardProjectCard({ project, onClick, taskSummary, on
   const [editingPath, setEditingPath] = useState(false);
   const [pathValue, setPathValue] = useState(currentPath);
   const [savingPath, setSavingPath] = useState(false);
+  const [movingOpen, setMovingOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const canMove = onMoveProject && tree && currentRaccoglitoreId !== undefined && tree.length > 1;
 
   const startEditPath = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -174,6 +182,15 @@ export default function DashboardProjectCard({ project, onClick, taskSummary, on
                   >
                     <Pencil className="h-3 w-3" />
                   </button>
+                  {canMove && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setMovingOpen(true); }}
+                      className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-primary/10 hover:text-primary group-hover/card:opacity-100"
+                      title="Sposta in un altro raccoglitore"
+                    >
+                      <FolderSymlink className="h-3 w-3" />
+                    </button>
+                  )}
                   <span
                     role="button"
                     tabIndex={0}
@@ -226,6 +243,18 @@ export default function DashboardProjectCard({ project, onClick, taskSummary, on
             </span>
           ))}
         </div>
+      )}
+
+      {movingOpen && canMove && (
+        <MoveProjectDialog
+          projectDisplayName={project.displayName || project.name}
+          tree={tree}
+          currentRaccoglitoreId={currentRaccoglitoreId}
+          onMove={async (targetRid) => {
+            await onMoveProject!(currentRaccoglitoreId, targetRid, project.name);
+          }}
+          onClose={() => setMovingOpen(false)}
+        />
       )}
 
       {taskSummary && (taskSummary.pending + taskSummary.inProgress + taskSummary.completed > 0) && (

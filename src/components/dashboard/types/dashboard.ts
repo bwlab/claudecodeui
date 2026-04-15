@@ -11,14 +11,26 @@ export interface Dashboard {
   view_mode: DashboardViewMode;
 }
 
+export const MAX_RACCOGLITORE_DEPTH = 2;
+
 export interface Raccoglitore {
   id: number;
   dashboard_id: number;
+  parent_id: number | null;
+  depth: number;
   name: string;
   color: string;
   icon: string;
   notes: string;
   position: number;
+}
+
+export interface RaccoglitoreNode extends Raccoglitore {
+  children: RaccoglitoreNode[];
+  directAssignments: DashboardProjectAssignment[];
+  directProjectsCount: number;
+  totalProjectsCount: number;
+  descendantsCount: number;
 }
 
 export interface DashboardProjectAssignment {

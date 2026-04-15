@@ -57,10 +57,13 @@ function MainContent({
   onShowSettings,
   externalMessageUpdate,
   activeDashboardId,
+  effectiveDashboardId,
   dashboardChecked,
   onDashboardSelect,
+  onNavigateToDashboardPath,
   projects,
   onProjectSelect,
+  hideDashboardSelector,
 }: MainContentProps) {
   const { preferences } = useUiPreferences();
   const { autoExpandTools, showRawParameters, showThinking, autoScrollToBottom, sendByCtrlEnter } = preferences;
@@ -120,7 +123,10 @@ function MainContent({
         onMenuClick={onMenuClick}
         onBackToKanban={(selectedSession || isNewSession) ? onBackToKanban : undefined}
         activeDashboardId={activeDashboardId}
+        effectiveDashboardId={effectiveDashboardId}
         onDashboardSelect={onDashboardSelect}
+        onNavigateToDashboardPath={onNavigateToDashboardPath}
+        hideDashboardSelector={hideDashboardSelector}
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">

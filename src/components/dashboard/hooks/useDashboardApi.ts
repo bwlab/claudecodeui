@@ -54,12 +54,13 @@ export function useDashboardApi() {
   }, []);
 
   // --- Raccoglitori ---
-  const createRaccoglitore = useCallback(async (dashboardId: number, data: { name: string; color?: string; icon?: string; notes?: string }): Promise<Raccoglitore> => {
+  const createRaccoglitore = useCallback(async (dashboardId: number, data: { name: string; color?: string; icon?: string; notes?: string; parent_id?: number | null }): Promise<Raccoglitore> => {
     const res = await authenticatedFetch(`/api/dashboards/${dashboardId}/raccoglitori`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
     const result = await res.json();
+    if (!res.ok) throw new Error(result?.error || 'Failed to create raccoglitore');
     return result.raccoglitore;
   }, []);
 
@@ -70,8 +71,19 @@ export function useDashboardApi() {
     });
   }, []);
 
-  const deleteRaccoglitore = useCallback(async (dashboardId: number, rid: number) => {
-    await authenticatedFetch(`/api/dashboards/${dashboardId}/raccoglitori/${rid}`, { method: 'DELETE' });
+  const moveRaccoglitore = useCallback(async (dashboardId: number, rid: number, payload: { parent_id: number | null; position?: number | null }): Promise<Raccoglitore> => {
+    const res = await authenticatedFetch(`/api/dashboards/${dashboardId}/raccoglitori/${rid}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result?.error || 'Failed to move raccoglitore');
+    return result.raccoglitore;
+  }, []);
+
+  const deleteRaccoglitore = useCallback(async (dashboardId: number, rid: number, options?: { reparent?: boolean }) => {
+    const qs = options?.reparent ? '?reparent=true' : '';
+    await authenticatedFetch(`/api/dashboards/${dashboardId}/raccoglitori/${rid}${qs}`, { method: 'DELETE' });
   }, []);
 
   const reorderRaccoglitori = useCallback(async (dashboardId: number, raccoglitoreIds: number[]) => {
@@ -113,6 +125,7 @@ export function useDashboardApi() {
     setDefaultDashboard,
     createRaccoglitore,
     updateRaccoglitore,
+    moveRaccoglitore,
     deleteRaccoglitore,
     reorderRaccoglitori,
     assignProject,
@@ -122,7 +135,7 @@ export function useDashboardApi() {
     getDashboards, getDefaultDashboardId, getFullDashboard,
     createDashboard, updateDashboard, deleteDashboard,
     reorderDashboards, setDefaultDashboard,
-    createRaccoglitore, updateRaccoglitore, deleteRaccoglitore, reorderRaccoglitori,
+    createRaccoglitore, updateRaccoglitore, moveRaccoglitore, deleteRaccoglitore, reorderRaccoglitori,
     assignProject, removeProject, reorderProjects,
   ]);
 }
