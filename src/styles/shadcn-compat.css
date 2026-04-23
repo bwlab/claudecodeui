@@ -27,8 +27,8 @@ html[data-theme="light"] {
   --accent-foreground: 0 0% 100%;
   --destructive: 3 100% 62%;       /* #FF453A  — state-danger */
   --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 0%;               /* alpha via tailwind modifier */
-  --input: 0 0% 0%;
+  --border: 220 13% 91%;           /* #e6e8ec — ink-100 neutro, bordi sottili */
+  --input: 220 13% 91%;
   --ring: 51 100% 48%;
   --radius: 0.5rem;
 }
@@ -51,7 +51,7 @@ html.dark {
   --accent-foreground: 0 0% 100%;
   --destructive: 3 100% 62%;
   --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 100%;             /* alpha via tailwind modifier */
-  --input: 0 0% 100%;
+  --border: 240 9% 16%;            /* #24242c — ink-700 bordi sottili su dark */
+  --input: 240 9% 16%;
   --ring: 51 100% 48%;
 }
