@@ -30,6 +30,7 @@ export const ThemeProvider = ({ children }) => {
   // Update document class and localStorage when theme changes
   useEffect(() => {
     if (isDarkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
       
@@ -44,6 +45,7 @@ export const ThemeProvider = ({ children }) => {
         themeColorMeta.setAttribute('content', '#0c1117'); // Dark background color (hsl(222.2 84% 4.9%))
       }
     } else {
+      document.documentElement.setAttribute('data-theme', 'light');
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
       
