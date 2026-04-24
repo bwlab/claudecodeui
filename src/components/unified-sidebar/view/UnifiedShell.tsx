@@ -29,6 +29,8 @@ interface UnifiedShellProps {
   onDeleteFolder?: (folderId: number, currentName: string) => void;
   onDeleteSession?: (project: Project, sessionId: string, provider: SessionProvider) => void;
   onDeleteProject?: (projectName: string, displayName?: string) => void;
+  onOpenTerminal?: (project: Project, sessionId: string, provider: SessionProvider) => void;
+  onOpenProjectShell?: (project: Project) => void;
   onOpenSettings?: () => void;
   /** When Location is project|session, the parent passes MainContent here. Otherwise ignored. */
   projectContent?: ReactNode;
@@ -146,6 +148,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
       onDeleteFolder={props.onDeleteFolder}
       onDeleteSession={props.onDeleteSession}
       onDeleteProject={props.onDeleteProject}
+      onOpenTerminal={props.onOpenTerminal}
       presetCounts={presetCounts}
       searchQuery={searchQuery}
     />
@@ -215,6 +218,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
                 onRenameProject={props.onRenameProject}
                 onDeleteProject={props.onDeleteProject}
                 onDeleteSession={props.onDeleteSession}
+                onOpenProjectShell={props.onOpenProjectShell}
                 onMoveProject={props.onMoveProject}
                 onAssignProjectToFolder={props.onAssignProjectToFolder}
                 assignments={workspace?.assignments}

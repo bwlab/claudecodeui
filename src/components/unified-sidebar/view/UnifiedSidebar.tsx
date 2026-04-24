@@ -23,6 +23,7 @@ interface UnifiedSidebarProps {
   onDeleteFolder?: (folderId: number, currentName: string) => void;
   onDeleteSession?: (project: Project, sessionId: string, provider: SessionProvider) => void;
   onDeleteProject?: (projectName: string, displayName?: string) => void;
+  onOpenTerminal?: (project: Project, sessionId: string, provider: SessionProvider) => void;
   presetCounts?: Partial<Record<PresetKind, number>>;
   searchQuery?: string;
 }
@@ -91,6 +92,7 @@ export default function UnifiedSidebar(props: UnifiedSidebarProps) {
         onDeleteFolder={props.onDeleteFolder}
         onDeleteSession={props.onDeleteSession}
         onDeleteProject={props.onDeleteProject}
+        onOpenTerminal={props.onOpenTerminal}
         expanded={expanded}
         onToggleExpanded={handleToggleExpanded}
         searchQuery={props.searchQuery}

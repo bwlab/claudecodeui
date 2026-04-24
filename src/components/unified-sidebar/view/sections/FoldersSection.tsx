@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Folder, FolderOpen, LayoutDashboard, FileCode2, MessageSquare, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Folder, FolderOpen, LayoutDashboard, FileCode2, MessageSquare, Plus, Pencil, Trash2, Terminal } from 'lucide-react';
 import type { Project, SessionProvider } from '../../../../types/app';
 import type { FullWorkspace } from '../../../dashboard/types/dashboard';
 import type { Location } from '../../types/location';
@@ -19,6 +19,7 @@ interface FoldersSectionProps {
   onSelectSession: (project: Project, sessionId: string, provider: SessionProvider, folderContext?: { dashboardId: number; folderIds: number[] }) => void;
   onDeleteSession?: (project: Project, sessionId: string, provider: SessionProvider) => void;
   onDeleteProject?: (projectName: string, displayName?: string) => void;
+  onOpenTerminal?: (project: Project, sessionId: string, provider: SessionProvider) => void;
   onCreateDashboard: () => void;
   onCreateFolder?: (dashboardId: number, parentFolderId: number | null) => void;
   onMoveProject?: (projectName: string, targetRaccoglitoreId: number) => void;
@@ -142,6 +143,7 @@ export default function FoldersSection(props: FoldersSectionProps) {
               onDeleteFolder={props.onDeleteFolder}
               onDeleteSession={props.onDeleteSession}
               onDeleteProject={props.onDeleteProject}
+              onOpenTerminal={props.onOpenTerminal}
               dnd={dndHandlers}
             />
           ))}
@@ -173,6 +175,7 @@ function DashboardRow({
   onDeleteFolder,
   onDeleteSession,
   onDeleteProject,
+  onOpenTerminal,
   dnd,
 }: {
   dashboard: DashboardNode;
@@ -189,6 +192,7 @@ function DashboardRow({
   onDeleteFolder?: FoldersSectionProps['onDeleteFolder'];
   onDeleteSession?: FoldersSectionProps['onDeleteSession'];
   onDeleteProject?: FoldersSectionProps['onDeleteProject'];
+  onOpenTerminal?: FoldersSectionProps['onOpenTerminal'];
   dnd: DndHandlers;
 }) {
   const key = nodeKey('d', dashboard.id);
@@ -276,6 +280,7 @@ function DashboardRow({
               onDeleteFolder={onDeleteFolder}
               onDeleteSession={onDeleteSession}
               onDeleteProject={onDeleteProject}
+              onOpenTerminal={onOpenTerminal}
               dnd={dnd}
             />
           ))}
@@ -301,6 +306,7 @@ function FolderRowTree({
   onDeleteFolder,
   onDeleteSession,
   onDeleteProject,
+  onOpenTerminal,
   dnd,
 }: {
   folder: FolderNode;
@@ -318,6 +324,7 @@ function FolderRowTree({
   onDeleteFolder?: FoldersSectionProps['onDeleteFolder'];
   onDeleteSession?: FoldersSectionProps['onDeleteSession'];
   onDeleteProject?: FoldersSectionProps['onDeleteProject'];
+  onOpenTerminal?: FoldersSectionProps['onOpenTerminal'];
   dnd: DndHandlers;
 }) {
   const key = nodeKey('f', folder.id);
@@ -455,6 +462,7 @@ function FolderRowTree({
               onDeleteFolder={onDeleteFolder}
               onDeleteSession={onDeleteSession}
               onDeleteProject={onDeleteProject}
+              onOpenTerminal={onOpenTerminal}
               dnd={dnd}
             />
           ))}
@@ -472,6 +480,7 @@ function FolderRowTree({
               onRenameProject={onRenameProject}
               onDeleteSession={onDeleteSession}
               onDeleteProject={onDeleteProject}
+              onOpenTerminal={onOpenTerminal}
               dnd={dnd}
             />
           ))}
@@ -493,6 +502,7 @@ function ProjectRowTree({
   onRenameProject,
   onDeleteSession,
   onDeleteProject,
+  onOpenTerminal,
   dnd,
 }: {
   projectNode: ProjectNode;
@@ -506,6 +516,7 @@ function ProjectRowTree({
   onRenameProject?: FoldersSectionProps['onRenameProject'];
   onDeleteSession?: FoldersSectionProps['onDeleteSession'];
   onDeleteProject?: FoldersSectionProps['onDeleteProject'];
+  onOpenTerminal?: FoldersSectionProps['onOpenTerminal'];
   dnd: DndHandlers;
 }) {
   const key = nodeKey('p', projectNode.projectName);
@@ -582,6 +593,7 @@ function ProjectRowTree({
               project={projectNode.project}
               onSelectSession={onSelectSession}
               onDeleteSession={onDeleteSession}
+              onOpenTerminal={onOpenTerminal}
             />
           ))}
         </div>
@@ -598,6 +610,7 @@ function SessionRowTree({
   project,
   onSelectSession,
   onDeleteSession,
+  onOpenTerminal,
 }: {
   session: SessionNode;
   depth: number;
@@ -606,6 +619,7 @@ function SessionRowTree({
   project: Project;
   onSelectSession: FoldersSectionProps['onSelectSession'];
   onDeleteSession?: FoldersSectionProps['onDeleteSession'];
+  onOpenTerminal?: FoldersSectionProps['onOpenTerminal'];
 }) {
   const isSelected =
     location.kind === 'session' &&
@@ -625,20 +639,36 @@ function SessionRowTree({
       icon={<MessageSquare className="h-3.5 w-3.5 text-muted-foreground/70" />}
       label={<span className="truncate text-[13px]">{title}</span>}
       actions={
-        onDeleteSession && session.provider !== 'cursor' ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteSession(project, session.sessionId, session.provider);
-            }}
-            className="hover:bg-[color:var(--heritage-b,#E30613)]/10 flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:text-[color:var(--heritage-b,#E30613)]"
-            aria-label="Elimina sessione"
-            title="Elimina sessione"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        ) : null
+        <>
+          {onOpenTerminal && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenTerminal(project, session.sessionId, session.provider);
+              }}
+              className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              aria-label="Apri terminale"
+              title="Apri terminale"
+            >
+              <Terminal className="h-3 w-3" />
+            </button>
+          )}
+          {onDeleteSession && session.provider !== 'cursor' && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteSession(project, session.sessionId, session.provider);
+              }}
+              className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:bg-[color:var(--heritage-b,#E30613)]/10 hover:text-[color:var(--heritage-b,#E30613)]"
+              aria-label="Elimina sessione"
+              title="Elimina sessione"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </>
       }
     />
   );

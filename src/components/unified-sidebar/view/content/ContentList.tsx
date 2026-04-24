@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Folder as FolderIcon, FileCode2, Star, ChevronDown, ChevronRight, Terminal, Wrench, Plug, Pencil, Trash2, FolderInput } from 'lucide-react';
+import { Folder as FolderIcon, FileCode2, Star, ChevronDown, ChevronRight, Terminal, TerminalSquare, Wrench, Plug, Pencil, Trash2, FolderInput } from 'lucide-react';
 import type { Project, SessionProvider } from '../../../../types/app';
 import type { FullWorkspace } from '../../../dashboard/types/dashboard';
 import type { Location, PresetKind } from '../../types/location';
@@ -28,6 +28,7 @@ interface ContentListProps {
   onDeleteSession?: (project: Project, sessionId: string, provider: SessionProvider) => void;
   onMoveProject?: (projectName: string, targetRaccoglitoreId: number) => void;
   onAssignProjectToFolder?: (projectName: string, targetRaccoglitoreId: number) => void;
+  onOpenProjectShell?: (project: Project) => void;
   assignments?: FullWorkspace['assignments'];
 }
 
@@ -159,6 +160,7 @@ export default function ContentList(props: ContentListProps) {
                 onDeleteSession={props.onDeleteSession}
                 onDeleteProject={props.onDeleteProject}
                 onAssignClick={props.onAssignProjectToFolder ? openPicker : undefined}
+                onOpenProjectShell={props.onOpenProjectShell}
                   highlightQuery={q}
                 />
               ))
@@ -197,6 +199,7 @@ export default function ContentList(props: ContentListProps) {
                 onDeleteSession={props.onDeleteSession}
                 onDeleteProject={props.onDeleteProject}
                 onAssignClick={props.onAssignProjectToFolder ? openPicker : undefined}
+                onOpenProjectShell={props.onOpenProjectShell}
         />
         {renderPanel()}
       </>
@@ -272,6 +275,7 @@ export default function ContentList(props: ContentListProps) {
                 onDeleteSession={props.onDeleteSession}
                 onDeleteProject={props.onDeleteProject}
                 onAssignClick={props.onAssignProjectToFolder ? openPicker : undefined}
+                onOpenProjectShell={props.onOpenProjectShell}
                   />
                 ))}
               </>
@@ -305,6 +309,7 @@ function PresetView({
   onDeleteProject,
   onDeleteSession,
   onAssignClick,
+  onOpenProjectShell,
 }: {
   built: NonNullable<ReturnType<typeof buildUnifiedTree>>;
   preset: PresetKind;
@@ -321,6 +326,7 @@ function PresetView({
   onDeleteProject?: ContentListProps['onDeleteProject'];
   onDeleteSession?: ContentListProps['onDeleteSession'];
   onAssignClick?: (projectName: string) => void;
+  onOpenProjectShell?: ContentListProps['onOpenProjectShell'];
 }) {
   const allProjects = [...built.projectsByName.values()];
   const favoriteSet = new Set<string>();
@@ -360,6 +366,7 @@ function PresetView({
               onDeleteProject={onDeleteProject}
               onDeleteSession={onDeleteSession}
               onAssignClick={onAssignClick}
+              onOpenProjectShell={onOpenProjectShell}
             />
           ))
         )}
@@ -447,6 +454,7 @@ interface ProjectRowProps {
   onDeleteProject?: ContentListProps['onDeleteProject'];
   onDeleteSession?: ContentListProps['onDeleteSession'];
   onAssignClick?: (projectName: string) => void;
+  onOpenProjectShell?: (project: Project) => void;
   highlightQuery?: string;
 }
 
@@ -463,6 +471,7 @@ function ProjectRow({
   onDeleteProject,
   onDeleteSession,
   onAssignClick,
+  onOpenProjectShell,
   highlightQuery,
 }: ProjectRowProps) {
   const title = project.displayName || project.name;
@@ -522,6 +531,20 @@ function ProjectRow({
         <div className="flex items-center gap-1">
           {onOpenSettings && (
             <div className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+              {onOpenProjectShell && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenProjectShell(project);
+                  }}
+                  className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  aria-label="Apri shell di sistema"
+                  title="Shell"
+                >
+                  <TerminalSquare className="h-3.5 w-3.5" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={(e) => {

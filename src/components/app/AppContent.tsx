@@ -97,6 +97,30 @@ export default function AppContent() {
     setActiveTab('chat');
   }, [setSelectedProject, setSelectedSession, setIsNewSession, setActiveTab]);
 
+  const handleOpenShellForProject = useCallback((project: Project) => {
+    setSelectedProject(project);
+    setSelectedSession(null);
+    setIsNewSession(false);
+    setActiveTab('shell');
+  }, [setSelectedProject, setSelectedSession, setIsNewSession, setActiveTab]);
+
+  const handleOpenTerminalForSession = useCallback(
+    (project: Project, sessionId: string, provider: SessionProvider) => {
+      const pool =
+        provider === 'claude' ? project.sessions :
+        provider === 'cursor' ? project.cursorSessions :
+        provider === 'codex' ? project.codexSessions :
+        project.geminiSessions;
+      const session = pool?.find((s) => s.id === sessionId);
+      if (!session) return;
+      setSelectedProject(project);
+      setSelectedSession({ ...session, __provider: provider });
+      setIsNewSession(false);
+      setActiveTab('shell');
+    },
+    [setSelectedProject, setSelectedSession, setIsNewSession, setActiveTab],
+  );
+
   const handleSessionSelectFromShell = useCallback(
     (project: Project, sessionId: string, provider: SessionProvider) => {
       const pool =
@@ -501,6 +525,8 @@ export default function AppContent() {
         onDeleteFolder={handleDeleteFolder}
         onDeleteSession={handleDeleteSessionFromTree}
         onDeleteProject={handleDeleteProjectFromTree}
+        onOpenTerminal={handleOpenTerminalForSession}
+        onOpenProjectShell={handleOpenShellForProject}
         onOpenSettings={() => setShowSettings(true)}
         projectContent={projectContent}
       />
