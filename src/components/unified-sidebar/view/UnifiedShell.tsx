@@ -156,6 +156,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
       onDeleteSession={props.onDeleteSession}
       onDeleteProject={props.onDeleteProject}
       onOpenTerminal={props.onOpenTerminal}
+      onSelectAgent={handleSelectAgent}
       presetCounts={presetCounts}
       searchQuery={searchQuery}
     />

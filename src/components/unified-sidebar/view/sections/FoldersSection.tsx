@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Folder, FolderOpen, LayoutDashboard, FileCode2, FileText, MessageSquare, Plus, Pencil, Trash2, Terminal } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Folder, FolderOpen, LayoutDashboard, FileCode2, FileText, MessageSquare, Plus, Pencil, Trash2, Terminal, Bot } from 'lucide-react';
 import type { Project, SessionProvider } from '../../../../types/app';
 import type { FullWorkspace } from '../../../dashboard/types/dashboard';
 import type { Location } from '../../types/location';
@@ -7,6 +7,7 @@ import type { DashboardNode, FolderNode, ProjectNode, SessionNode } from '../../
 import { buildUnifiedTree } from '../../utils/buildUnifiedTree';
 import TreeRow from '../tree/TreeRow';
 import ClaudeMdViewerDialog from '../dialogs/ClaudeMdViewerDialog';
+import { authenticatedFetch } from '../../../../utils/api';
 
 type ExpandedSet = Set<string>;
 
@@ -28,6 +29,7 @@ interface FoldersSectionProps {
   onRenameProject?: (projectName: string, currentDisplayName?: string) => void;
   onRenameFolder?: (folderId: number, currentName: string) => void;
   onDeleteFolder?: (folderId: number, currentName: string) => void;
+  onSelectAgent?: (scope: 'global' | 'project', agentName: string, projectName?: string) => void;
   expanded: ExpandedSet;
   onToggleExpanded: (key: string) => void;
   searchQuery?: string;
@@ -145,6 +147,7 @@ export default function FoldersSection(props: FoldersSectionProps) {
               onDeleteSession={props.onDeleteSession}
               onDeleteProject={props.onDeleteProject}
               onOpenTerminal={props.onOpenTerminal}
+              onSelectAgent={props.onSelectAgent}
               dnd={dndHandlers}
             />
           ))}
@@ -177,6 +180,7 @@ function DashboardRow({
   onDeleteSession,
   onDeleteProject,
   onOpenTerminal,
+  onSelectAgent,
   dnd,
 }: {
   dashboard: DashboardNode;
@@ -194,6 +198,7 @@ function DashboardRow({
   onDeleteSession?: FoldersSectionProps['onDeleteSession'];
   onDeleteProject?: FoldersSectionProps['onDeleteProject'];
   onOpenTerminal?: FoldersSectionProps['onOpenTerminal'];
+  onSelectAgent?: FoldersSectionProps['onSelectAgent'];
   dnd: DndHandlers;
 }) {
   const key = nodeKey('d', dashboard.id);
@@ -282,6 +287,7 @@ function DashboardRow({
               onDeleteSession={onDeleteSession}
               onDeleteProject={onDeleteProject}
               onOpenTerminal={onOpenTerminal}
+              onSelectAgent={onSelectAgent}
               dnd={dnd}
             />
           ))}
@@ -308,6 +314,7 @@ function FolderRowTree({
   onDeleteSession,
   onDeleteProject,
   onOpenTerminal,
+  onSelectAgent,
   dnd,
 }: {
   folder: FolderNode;
@@ -326,6 +333,7 @@ function FolderRowTree({
   onDeleteSession?: FoldersSectionProps['onDeleteSession'];
   onDeleteProject?: FoldersSectionProps['onDeleteProject'];
   onOpenTerminal?: FoldersSectionProps['onOpenTerminal'];
+  onSelectAgent?: FoldersSectionProps['onSelectAgent'];
   dnd: DndHandlers;
 }) {
   const key = nodeKey('f', folder.id);
@@ -464,6 +472,7 @@ function FolderRowTree({
               onDeleteSession={onDeleteSession}
               onDeleteProject={onDeleteProject}
               onOpenTerminal={onOpenTerminal}
+              onSelectAgent={onSelectAgent}
               dnd={dnd}
             />
           ))}
@@ -482,6 +491,7 @@ function FolderRowTree({
               onDeleteSession={onDeleteSession}
               onDeleteProject={onDeleteProject}
               onOpenTerminal={onOpenTerminal}
+              onSelectAgent={onSelectAgent}
               dnd={dnd}
             />
           ))}
@@ -489,6 +499,11 @@ function FolderRowTree({
       )}
     </div>
   );
+}
+
+interface AgentListEntry {
+  name: string;
+  description: string | null;
 }
 
 function ProjectRowTree({
@@ -504,6 +519,7 @@ function ProjectRowTree({
   onDeleteSession,
   onDeleteProject,
   onOpenTerminal,
+  onSelectAgent,
   dnd,
 }: {
   projectNode: ProjectNode;
@@ -518,15 +534,35 @@ function ProjectRowTree({
   onDeleteSession?: FoldersSectionProps['onDeleteSession'];
   onDeleteProject?: FoldersSectionProps['onDeleteProject'];
   onOpenTerminal?: FoldersSectionProps['onOpenTerminal'];
+  onSelectAgent?: FoldersSectionProps['onSelectAgent'];
   dnd: DndHandlers;
 }) {
   const key = nodeKey('p', projectNode.projectName);
   const isExpanded = expanded.has(key);
   const isSelected =
     (location.kind === 'project' && location.projectName === projectNode.projectName) ||
-    (location.kind === 'session' && location.projectName === projectNode.projectName);
+    (location.kind === 'session' && location.projectName === projectNode.projectName) ||
+    (location.kind === 'agent' && location.scope === 'project' && location.projectName === projectNode.projectName);
 
   const [showClaudeMd, setShowClaudeMd] = useState(false);
+  const [agents, setAgents] = useState<AgentListEntry[] | null>(null);
+
+  useEffect(() => {
+    if (!isExpanded || agents !== null) return;
+    let cancelled = false;
+    authenticatedFetch(`/api/project-agents/${encodeURIComponent(projectNode.projectName)}`)
+      .then(async (res) => (res.ok ? res.json() : { agents: [] }))
+      .then((json) => {
+        if (cancelled) return;
+        setAgents(Array.isArray(json.agents) ? json.agents : []);
+      })
+      .catch(() => {
+        if (!cancelled) setAgents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isExpanded, agents, projectNode.projectName]);
 
   const handleDragStart = useCallback((e: React.DragEvent) => {
     writePayload(e, { kind: 'project', projectName: projectNode.projectName });
@@ -611,6 +647,33 @@ function ProjectRowTree({
               onOpenTerminal={onOpenTerminal}
             />
           ))}
+        </div>
+      )}
+      {isExpanded && agents && agents.length > 0 && (
+        <div>
+          {agents.map((a) => {
+            const isAgentSelected =
+              location.kind === 'agent' &&
+              location.scope === 'project' &&
+              location.projectName === projectNode.projectName &&
+              location.agentName === a.name;
+            return (
+              <TreeRow
+                key={`agent:${a.name}`}
+                depth={depth + 1}
+                isSelected={isAgentSelected}
+                hasChildren={false}
+                isExpanded={false}
+                onClick={() => onSelectAgent?.('project', a.name, projectNode.projectName)}
+                icon={<Bot className="h-4 w-4 text-[color:var(--heritage-a,#F5D000)]" />}
+                label={
+                  <span className="truncate" title={a.description ?? undefined}>
+                    {a.name}
+                  </span>
+                }
+              />
+            );
+          })}
         </div>
       )}
       {showClaudeMd && (
