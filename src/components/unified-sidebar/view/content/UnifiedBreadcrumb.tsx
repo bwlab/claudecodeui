@@ -1,4 +1,4 @@
-import { ChevronRight, Home, Search, Flag } from 'lucide-react';
+import { ChevronRight, Home, Search, Flag, Bot } from 'lucide-react';
 import type { FullWorkspace } from '../../../dashboard/types/dashboard';
 import type { Project } from '../../../../types/app';
 import type { Location } from '../../types/location';
@@ -44,6 +44,27 @@ export default function UnifiedBreadcrumb({
       <div className="flex h-[42px] items-center gap-2 border-b border-border/60 px-4 text-sm">
         <Flag className="h-4 w-4 text-[color:var(--heritage-a,#F5D000)]" />
         <span className="font-semibold">{PRESET_LABELS[location.preset]}</span>
+      </div>
+    );
+  }
+
+  if (location.kind === 'agent') {
+    const scopeLabel = location.scope === 'global' ? 'Agenti globali' : `Agenti · ${location.projectName ?? ''}`;
+    return (
+      <div className="flex h-[42px] items-center gap-2 border-b border-border/60 px-4 text-sm">
+        <button
+          type="button"
+          onClick={onGoHome}
+          className="flex items-center gap-1 rounded px-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+        >
+          <Home className="h-3.5 w-3.5" />
+          <span>Home</span>
+        </button>
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+        <Bot className="h-3.5 w-3.5 text-[color:var(--heritage-a,#F5D000)]" />
+        <span className="text-muted-foreground">{scopeLabel}</span>
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+        <span className="font-semibold">{location.agentName}</span>
       </div>
     );
   }

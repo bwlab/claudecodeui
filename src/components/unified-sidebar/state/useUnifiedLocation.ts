@@ -56,7 +56,14 @@ export function parsePath(pathname: string): Location | null {
       const sessionId = decodeURIComponent(parts[4]);
       return { kind: 'session', projectName, sessionId, provider: parts[3] };
     }
+    if (parts[2] === 'agents' && parts[3]) {
+      return { kind: 'agent', scope: 'project', projectName, agentName: decodeURIComponent(parts[3]) };
+    }
     return { kind: 'project', projectName };
+  }
+
+  if (parts[0] === 'agents' && parts[1] === 'global' && parts[2]) {
+    return { kind: 'agent', scope: 'global', agentName: decodeURIComponent(parts[2]) };
   }
 
   return null;

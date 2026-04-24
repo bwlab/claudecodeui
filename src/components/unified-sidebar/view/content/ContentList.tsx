@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Folder as FolderIcon, FileCode2, FileText, FolderOpen, Star, ChevronDown, ChevronRight, Terminal, TerminalSquare, Wrench, Plug, Pencil, Trash2, FolderInput } from 'lucide-react';
+import { Folder as FolderIcon, FileCode2, FileText, FolderOpen, Star, ChevronDown, ChevronRight, Terminal, TerminalSquare, Wrench, Plug, Pencil, Trash2, FolderInput, Bot } from 'lucide-react';
 import { authenticatedFetch } from '../../../../utils/api';
 import type { Project, SessionProvider } from '../../../../types/app';
 import type { FullWorkspace } from '../../../dashboard/types/dashboard';
@@ -15,6 +15,7 @@ import FolderPickerDialog from '../dialogs/FolderPickerDialog';
 import ClaudeMdViewerDialog from '../dialogs/ClaudeMdViewerDialog';
 import ContentToolbar, { type SortMode } from './ContentToolbar';
 import SessionInlineList from './rows/SessionInlineList';
+import AgentViewer from '../../../agents/view/AgentViewer';
 
 interface ContentListProps {
   location: Location;
@@ -31,6 +32,7 @@ interface ContentListProps {
   onMoveProject?: (projectName: string, targetRaccoglitoreId: number) => void;
   onAssignProjectToFolder?: (projectName: string, targetRaccoglitoreId: number) => void;
   onOpenProjectShell?: (project: Project) => void;
+  onSelectAgent?: (scope: 'global' | 'project', agentName: string, projectName?: string) => void;
   assignments?: FullWorkspace['assignments'];
 }
 
@@ -179,6 +181,24 @@ export default function ContentList(props: ContentListProps) {
       <div className="flex min-h-0 flex-1 flex-col">
         <EmptyState label="Caricamento…" />
       </div>
+    );
+  }
+
+  if (location.kind === 'agent') {
+    return (
+      <AgentViewer
+        scope={location.scope}
+        agentName={location.agentName}
+        projectName={location.projectName}
+      />
+    );
+  }
+
+  if (location.kind === 'preset' && location.preset === 'global-agents') {
+    return (
+      <GlobalAgentsView
+        onSelectAgent={(name) => props.onSelectAgent?.('global', name)}
+      />
     );
   }
 
@@ -710,6 +730,82 @@ function EmptyState({ label }: { label: string }) {
   return (
     <div className="flex flex-1 items-center justify-center p-10 text-sm text-muted-foreground">
       {label}
+    </div>
+  );
+}
+
+interface GlobalAgentEntry {
+  name: string;
+  description: string | null;
+  model: string | null;
+  filePath: string;
+}
+
+function GlobalAgentsView({ onSelectAgent }: { onSelectAgent: (agentName: string) => void }) {
+  const [agents, setAgents] = useState<GlobalAgentEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    authenticatedFetch('/api/project-agents/global/list')
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+        return json;
+      })
+      .then((json) => {
+        if (cancelled) return;
+        setAgents(json.agents || []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (error) {
+    return <EmptyState label={`Errore: ${error}`} />;
+  }
+  if (!agents) {
+    return <EmptyState label="Caricamento…" />;
+  }
+  if (agents.length === 0) {
+    return <EmptyState label="Nessun agente globale in ~/.claude/agents/" />;
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="border-b border-border/40 bg-muted/20 px-6 py-2 text-xs text-muted-foreground">
+        {agents.length} agenti globali
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {agents.map((a) => (
+          <button
+            key={a.name}
+            type="button"
+            onClick={() => onSelectAgent(a.name)}
+            className="group grid w-full grid-cols-[56px_1fr_auto] items-center gap-3 border-b border-border/30 px-6 py-3.5 text-left transition hover:bg-muted/40"
+          >
+            <div className="border-[color:var(--heritage-a,#F5D000)]/50 bg-[color:var(--heritage-a,#F5D000)]/10 flex h-12 w-12 items-center justify-center rounded-lg border">
+              <Bot className="h-6 w-6 text-[color:var(--heritage-a,#F5D000)]" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold">{a.name}</div>
+              {a.description && (
+                <div className="mt-0.5 truncate text-xs text-muted-foreground">{a.description}</div>
+              )}
+            </div>
+            {a.model && (
+              <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground">
+                {a.model}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

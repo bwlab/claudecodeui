@@ -78,6 +78,13 @@ export default function UnifiedShell(props: UnifiedShellProps) {
     [setLocation, props],
   );
 
+  const handleSelectAgent = useCallback(
+    (scope: 'global' | 'project', agentName: string, projectName?: string) => {
+      setLocation({ kind: 'agent', scope, agentName, projectName });
+    },
+    [setLocation],
+  );
+
   const handleGoToProject = useCallback(
     (projectName: string, folderContext?: { dashboardId: number; folderIds: number[] }) => {
       const project = projects.find((p) => p.name === projectName);
@@ -221,6 +228,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
                 onOpenProjectShell={props.onOpenProjectShell}
                 onMoveProject={props.onMoveProject}
                 onAssignProjectToFolder={props.onAssignProjectToFolder}
+                onSelectAgent={handleSelectAgent}
                 assignments={workspace?.assignments}
               />
             )}
