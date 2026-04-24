@@ -59,13 +59,13 @@ export default function TreeRow({
           : 'text-foreground/85 hover:bg-muted/50'
       } ${
         isDropTarget
-          ? 'ring-1 ring-[color:var(--heritage-b,#E30613)]/60 bg-[color:var(--heritage-b,#E30613)]/10'
+          ? 'ring-[color:var(--heritage-b,#E30613)]/60 bg-[color:var(--heritage-b,#E30613)]/10 ring-1'
           : ''
       } ${className}`}
       style={{ paddingLeft: indentPx }}
     >
       {isSelected && (
-        <span className="pointer-events-none absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-[color:var(--heritage-a,#F5D000)]" />
+        <span className="pointer-events-none absolute bottom-1 left-0 top-1 w-[3px] rounded-r bg-[color:var(--heritage-a,#F5D000)]" />
       )}
       <button
         type="button"

@@ -5,12 +5,12 @@ import type { FullWorkspace } from '../../dashboard/types/dashboard';
 import { useDeviceSettings } from '../../../hooks/useDeviceSettings';
 import { useUnifiedLocation } from '../state/useUnifiedLocation';
 import type { Location, PresetKind } from '../types/location';
+import { buildUnifiedTree, flattenAllProjects } from '../utils/buildUnifiedTree';
 import UnifiedHeader from './UnifiedHeader';
 import UnifiedSidebar from './UnifiedSidebar';
 import UnifiedBreadcrumb from './content/UnifiedBreadcrumb';
 import ContentList from './content/ContentList';
 import FooterHint from './FooterHint';
-import { buildUnifiedTree, flattenAllProjects } from '../utils/buildUnifiedTree';
 
 interface UnifiedShellProps {
   workspace: FullWorkspace | null;
@@ -199,7 +199,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
             onGoToProject={handleGoToProject}
           />
 
-          <div className="flex flex-1 min-h-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col">
             {showProjectContent ? (
               projectContent
             ) : (

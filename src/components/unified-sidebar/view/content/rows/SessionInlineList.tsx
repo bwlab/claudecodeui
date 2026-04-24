@@ -85,14 +85,14 @@ export default function SessionInlineList({ project, onSelectSession, onDeleteSe
               </span>
               {when && <span className="shrink-0 text-[11px] text-muted-foreground">{when}</span>}
             </button>
-            {onDeleteSession && (
+            {onDeleteSession && row.provider !== 'cursor' && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDeleteSession(project, row.sessionId, row.provider);
                 }}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-[color:var(--heritage-b,#E30613)]/10 hover:text-[color:var(--heritage-b,#E30613)]"
+                className="hover:bg-[color:var(--heritage-b,#E30613)]/10 flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:text-[color:var(--heritage-b,#E30613)] group-hover:opacity-100"
                 aria-label="Elimina sessione"
                 title="Elimina sessione"
               >

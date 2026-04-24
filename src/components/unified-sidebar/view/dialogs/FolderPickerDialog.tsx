@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, Search, Folder, LayoutDashboard, Check } from 'lucide-react';
 import type { FullWorkspace } from '../../../dashboard/types/dashboard';
 
@@ -27,12 +27,14 @@ function buildFolderOptions(workspace: FullWorkspace | null): FolderOption[] {
   const byId = new Map<number, typeof raccoglitori[number]>();
   for (const r of raccoglitori) byId.set(r.id, r);
   const pathCache = new Map<number, string[]>();
-  const resolvePath = (id: number): string[] => {
+  const resolvePath = (id: number, visited: Set<number> = new Set()): string[] => {
     const cached = pathCache.get(id);
     if (cached) return cached;
+    if (visited.has(id)) return []; // cycle guard
+    visited.add(id);
     const r = byId.get(id);
     if (!r) return [];
-    const parent = r.parent_id != null ? resolvePath(r.parent_id) : [];
+    const parent = r.parent_id != null ? resolvePath(r.parent_id, visited) : [];
     const out = [...parent, r.name];
     pathCache.set(id, out);
     return out;
@@ -58,6 +60,14 @@ export default function FolderPickerDialog({ title = 'Assegna a cartella', works
   const [query, setQuery] = useState('');
   const options = useMemo(() => buildFolderOptions(workspace), [workspace]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return options;
@@ -78,11 +88,14 @@ export default function FolderPickerDialog({ title = 'Assegna a cartella', works
   }, [filtered]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="w-full max-w-md rounded-xl border border-border bg-card shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+      <button
+        type="button"
+        aria-label="Chiudi"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+      />
+      <div className="relative w-full max-w-md rounded-xl border border-border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 className="text-sm font-semibold">{title}</h3>
           <button type="button" onClick={onClose} className="rounded p-1 hover:bg-accent">

@@ -9,10 +9,10 @@ import {
   flattenAllProjects,
   resolveFolderPath,
 } from '../../utils/buildUnifiedTree';
-import ContentToolbar, { type SortMode } from './ContentToolbar';
-import SessionInlineList from './rows/SessionInlineList';
 import ProjectSettingsPanel, { type ProjectSettingsTab } from '../../../project-settings/view/ProjectSettingsPanel';
 import FolderPickerDialog from '../dialogs/FolderPickerDialog';
+import ContentToolbar, { type SortMode } from './ContentToolbar';
+import SessionInlineList from './rows/SessionInlineList';
 
 interface ContentListProps {
   location: Location;
@@ -138,7 +138,7 @@ export default function ContentList(props: ContentListProps) {
     const sorted = sortProjects(matches);
     return (
       <>
-        <div className="flex flex-1 min-h-0 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <ContentToolbar sort={sort} onSortChange={setSort} counter={`${matches.length} progetti`} />
           <div className="flex-1 overflow-y-auto">
             {sorted.length === 0 ? (
@@ -172,7 +172,7 @@ export default function ContentList(props: ContentListProps) {
 
   if (!built) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <EmptyState label="Caricamento…" />
       </div>
     );
@@ -210,7 +210,7 @@ export default function ContentList(props: ContentListProps) {
       const counter = `${dashboard.folders.length} cartelle · ${dashboard.totalProjectsCount} progetti`;
       return (
         <>
-          <div className="flex flex-1 min-h-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col">
             <ContentToolbar sort={sort} onSortChange={setSort} counter={counter} />
             <div className="flex-1 overflow-y-auto">
               {dashboard.folders.length === 0 ? (
@@ -233,7 +233,7 @@ export default function ContentList(props: ContentListProps) {
       const sortedProjNodes = sortProjectNodes(projNodes, sort);
       return (
         <>
-          <div className="flex flex-1 min-h-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col">
           <ContentToolbar sort={sort} onSortChange={setSort} counter={counter} />
           <div className="flex-1 overflow-y-auto">
             {folder.children.length === 0 && folder.projects.length === 0 ? (
@@ -339,7 +339,7 @@ function PresetView({
   const sorted = preset === 'recent' ? list : sortProjects(list);
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <ContentToolbar sort={sort} onSortChange={onSortChange} counter={`${list.length} progetti`} />
       <div className="flex-1 overflow-y-auto">
         {sorted.length === 0 ? (
@@ -419,8 +419,8 @@ function FolderRow({ folder, onClick }: { folder: FolderNode; onClick: () => voi
       onClick={onClick}
       className="grid w-full grid-cols-[56px_1fr_auto] items-center gap-3 border-b border-border/30 px-6 py-3.5 text-left transition hover:bg-muted/40"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-[color:var(--heritage-a,#F5D000)]/50 bg-[color:var(--heritage-a,#F5D000)]/10">
-        <FolderIcon className="h-6 w-6 fill-[color:var(--heritage-a,#F5D000)]/30 text-[color:var(--heritage-a,#F5D000)]" />
+      <div className="border-[color:var(--heritage-a,#F5D000)]/50 bg-[color:var(--heritage-a,#F5D000)]/10 flex h-12 w-12 items-center justify-center rounded-lg border">
+        <FolderIcon className="fill-[color:var(--heritage-a,#F5D000)]/30 h-6 w-6 text-[color:var(--heritage-a,#F5D000)]" />
       </div>
       <div className="min-w-0">
         <div className="truncate text-base font-semibold text-[color:var(--heritage-b,#E30613)]">
@@ -567,7 +567,7 @@ function ProjectRow({
                 e.stopPropagation();
                 onAssignClick(project.name);
               }}
-              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-muted hover:text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:bg-muted hover:text-foreground group-hover:opacity-100"
               aria-label="Assegna a cartella"
               title="Assegna a cartella"
             >
@@ -581,7 +581,7 @@ function ProjectRow({
                 e.stopPropagation();
                 onRenameProject(project.name, project.displayName);
               }}
-              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-muted hover:text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:bg-muted hover:text-foreground group-hover:opacity-100"
               aria-label="Rinomina progetto"
               title="Rinomina progetto"
             >
@@ -595,7 +595,7 @@ function ProjectRow({
                 e.stopPropagation();
                 onDeleteProject(project.name, project.displayName);
               }}
-              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-[color:var(--heritage-b,#E30613)]/10 hover:text-[color:var(--heritage-b,#E30613)]"
+              className="hover:bg-[color:var(--heritage-b,#E30613)]/10 flex h-7 w-7 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:text-[color:var(--heritage-b,#E30613)] group-hover:opacity-100"
               aria-label="Elimina progetto"
               title="Elimina progetto"
             >
@@ -612,7 +612,7 @@ function ProjectRow({
               className={`flex h-7 w-7 items-center justify-center rounded transition ${
                 isFavorite
                   ? 'text-[color:var(--heritage-a,#F5D000)]'
-                  : 'text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-[color:var(--heritage-a,#F5D000)]'
+                  : 'text-muted-foreground opacity-0 hover:text-[color:var(--heritage-a,#F5D000)] group-hover:opacity-100'
               }`}
               aria-label={isFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
               title={isFavorite ? 'Rimuovi preferito' : 'Preferito'}
@@ -654,7 +654,7 @@ function highlightMatches(text: string, query: string) {
   return (
     <>
       {text.slice(0, idx)}
-      <mark className="rounded bg-[color:var(--heritage-a,#F5D000)]/40 px-0.5 font-semibold text-foreground">
+      <mark className="bg-[color:var(--heritage-a,#F5D000)]/40 rounded px-0.5 font-semibold text-foreground">
         {text.slice(idx, idx + q.length)}
       </mark>
       {text.slice(idx + q.length)}

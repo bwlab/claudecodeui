@@ -375,9 +375,9 @@ function FolderRowTree({
         onClick={() => onSelectFolder(dashboardId, pathIds)}
         icon={
           isExpanded ? (
-            <FolderOpen className="h-4 w-4 fill-[color:var(--heritage-a,#F5D000)]/25 text-[color:var(--heritage-a,#F5D000)]" />
+            <FolderOpen className="fill-[color:var(--heritage-a,#F5D000)]/25 h-4 w-4 text-[color:var(--heritage-a,#F5D000)]" />
           ) : (
-            <Folder className="h-4 w-4 fill-[color:var(--heritage-a,#F5D000)]/25 text-[color:var(--heritage-a,#F5D000)]" />
+            <Folder className="fill-[color:var(--heritage-a,#F5D000)]/25 h-4 w-4 text-[color:var(--heritage-a,#F5D000)]" />
           )
         }
         label={<span className="text-[color:var(--heritage-b,#E30613)]">{folder.name}</span>}
@@ -425,7 +425,7 @@ function FolderRowTree({
                   e.stopPropagation();
                   onDeleteFolder(folder.id, folder.name);
                 }}
-                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:bg-[color:var(--heritage-b,#E30613)]/10 hover:text-[color:var(--heritage-b,#E30613)]"
+                className="hover:bg-[color:var(--heritage-b,#E30613)]/10 flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:text-[color:var(--heritage-b,#E30613)]"
                 aria-label="Elimina cartella"
                 title="Elimina cartella"
               >
@@ -560,7 +560,7 @@ function ProjectRowTree({
                   e.stopPropagation();
                   onDeleteProject(projectNode.projectName, projectNode.project.displayName);
                 }}
-                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:bg-[color:var(--heritage-b,#E30613)]/10 hover:text-[color:var(--heritage-b,#E30613)]"
+                className="hover:bg-[color:var(--heritage-b,#E30613)]/10 flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:text-[color:var(--heritage-b,#E30613)]"
                 aria-label="Elimina progetto"
                 title="Elimina progetto"
               >
@@ -625,14 +625,14 @@ function SessionRowTree({
       icon={<MessageSquare className="h-3.5 w-3.5 text-muted-foreground/70" />}
       label={<span className="truncate text-[13px]">{title}</span>}
       actions={
-        onDeleteSession ? (
+        onDeleteSession && session.provider !== 'cursor' ? (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onDeleteSession(project, session.sessionId, session.provider);
             }}
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:bg-[color:var(--heritage-b,#E30613)]/10 hover:text-[color:var(--heritage-b,#E30613)]"
+            className="hover:bg-[color:var(--heritage-b,#E30613)]/10 flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:text-[color:var(--heritage-b,#E30613)]"
             aria-label="Elimina sessione"
             title="Elimina sessione"
           >

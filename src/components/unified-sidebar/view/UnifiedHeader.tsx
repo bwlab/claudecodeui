@@ -43,7 +43,7 @@ export default function UnifiedHeader({ projects, workspace, searchQuery, onSear
 
   return (
     <header className="grid h-[60px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-border/60 bg-background px-4 sm:grid-cols-[240px_1fr_auto]">
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex min-w-0 items-center gap-2">
         {isMobile && onMenuClick && (
           <button
             type="button"
@@ -76,20 +76,20 @@ export default function UnifiedHeader({ projects, workspace, searchQuery, onSear
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Cerca tra progetti e sessioni (premi /)"
-          className="h-10 w-full rounded-md border border-border/70 bg-muted/30 pl-9 pr-3 text-sm outline-none transition focus:border-[color:var(--heritage-a,#F5D000)] focus:bg-background focus:ring-2 focus:ring-[color:var(--heritage-a,#F5D000)]/25"
+          className="focus:ring-[color:var(--heritage-a,#F5D000)]/25 h-10 w-full rounded-md border border-border/70 bg-muted/30 pl-9 pr-3 text-sm outline-none transition focus:border-[color:var(--heritage-a,#F5D000)] focus:bg-background focus:ring-2"
           spellCheck={false}
         />
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="hidden text-xs text-muted-foreground tabular-nums sm:inline">
+        <span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">
           {projectCount} progetti · {folderCount} cartelle
         </span>
         {onOpenSettings && (
           <button
             type="button"
             onClick={onOpenSettings}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition hover:border-[color:var(--heritage-a,#F5D000)] hover:text-[color:var(--heritage-a,#F5D000)] hover:scale-105"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition hover:scale-105 hover:border-[color:var(--heritage-a,#F5D000)] hover:text-[color:var(--heritage-a,#F5D000)]"
             aria-label="Impostazioni"
             title="Impostazioni"
           >
@@ -99,7 +99,7 @@ export default function UnifiedHeader({ projects, workspace, searchQuery, onSear
         <button
           type="button"
           onClick={toggleDarkMode}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition hover:border-[color:var(--heritage-a,#F5D000)] hover:text-[color:var(--heritage-a,#F5D000)] hover:scale-105"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition hover:scale-105 hover:border-[color:var(--heritage-a,#F5D000)] hover:text-[color:var(--heritage-a,#F5D000)]"
           aria-label={isDarkMode ? 'Attiva tema chiaro' : 'Attiva tema scuro'}
         >
           {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

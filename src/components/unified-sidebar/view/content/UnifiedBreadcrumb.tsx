@@ -103,7 +103,7 @@ export default function UnifiedBreadcrumb({
   }
 
   return (
-    <div className="flex h-[42px] items-center gap-1 overflow-x-auto border-b border-border/60 px-4 text-sm whitespace-nowrap">
+    <div className="flex h-[42px] items-center gap-1 overflow-x-auto whitespace-nowrap border-b border-border/60 px-4 text-sm">
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1">
           {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />}

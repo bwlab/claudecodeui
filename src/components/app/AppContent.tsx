@@ -10,7 +10,6 @@ import CommandPalette from '../command-palette/CommandPalette';
 import UnifiedShell from '../unified-sidebar/view/UnifiedShell';
 import { useWorkspace } from '../unified-sidebar/state/useWorkspace';
 import { parsePath } from '../unified-sidebar/state/useUnifiedLocation';
-import { authenticatedFetch } from '../../utils/api';
 import type { Project, SessionProvider } from '../../types/app';
 import Settings from '../settings/view/Settings';
 
@@ -159,14 +158,7 @@ export default function AppContent() {
   const handleDeleteProjectFromTree = useCallback(async (projectName: string, displayName?: string) => {
     if (!window.confirm(`Eliminare il progetto "${displayName ?? projectName}"? Vengono rimosse anche tutte le sessioni associate.`)) return;
     try {
-      const res = await authenticatedFetch(
-        `/api/projects/${encodeURIComponent(projectName)}`,
-        { method: 'DELETE' },
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Eliminazione fallita');
-      }
+      await dashboardApi.deleteProject(projectName);
       if (selectedProject?.name === projectName) {
         setSelectedProject(null);
         setSelectedSession(null);
@@ -178,7 +170,7 @@ export default function AppContent() {
       console.error(e);
       alert(e instanceof Error ? e.message : 'Errore eliminazione progetto');
     }
-  }, [selectedProject, setSelectedProject, setSelectedSession, setIsNewSession, refreshProjectsSilently, reloadWorkspace]);
+  }, [dashboardApi, selectedProject, setSelectedProject, setSelectedSession, setIsNewSession, refreshProjectsSilently, reloadWorkspace]);
 
   const handleDeleteSessionFromTree = useCallback(async (project: Project, sessionId: string, provider: SessionProvider) => {
     if (provider === 'cursor') {
@@ -186,24 +178,15 @@ export default function AppContent() {
       return;
     }
     if (!window.confirm('Eliminare la sessione?')) return;
-    const url = provider === 'claude'
-      ? `/api/projects/${encodeURIComponent(project.name)}/sessions/${encodeURIComponent(sessionId)}`
-      : provider === 'codex'
-        ? `/api/codex/sessions/${encodeURIComponent(sessionId)}`
-        : `/api/gemini/sessions/${encodeURIComponent(sessionId)}`;
     try {
-      const res = await authenticatedFetch(url, { method: 'DELETE' });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Eliminazione fallita');
-      }
+      await dashboardApi.deleteSession(project.name, sessionId, provider);
       handleSessionDelete(sessionId);
       await refreshProjectsSilently();
     } catch (e) {
       console.error(e);
       alert(e instanceof Error ? e.message : 'Errore eliminazione sessione');
     }
-  }, [handleSessionDelete, refreshProjectsSilently]);
+  }, [dashboardApi, handleSessionDelete, refreshProjectsSilently]);
 
   const handleRenameFolder = useCallback(async (folderId: number, currentName: string) => {
     const racc = workspace?.raccoglitori.find((r) => r.id === folderId);
@@ -253,21 +236,14 @@ export default function AppContent() {
     const next = window.prompt('Nuovo nome del progetto:', currentDisplayName ?? projectName);
     if (!next || !next.trim() || next.trim() === currentDisplayName) return;
     try {
-      const res = await authenticatedFetch(`/api/projects/${encodeURIComponent(projectName)}/rename`, {
-        method: 'PUT',
-        body: JSON.stringify({ displayName: next.trim() }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Rename fallito');
-      }
+      await dashboardApi.renameProject(projectName, next.trim());
       await refreshProjectsSilently();
       await reloadWorkspace();
     } catch (e) {
       console.error(e);
       alert(e instanceof Error ? e.message : 'Errore rinomina progetto');
     }
-  }, [refreshProjectsSilently, reloadWorkspace]);
+  }, [dashboardApi, refreshProjectsSilently, reloadWorkspace]);
 
   const handleAssignProjectToFolder = useCallback(async (projectName: string, targetRaccoglitoreId: number) => {
     try {
@@ -290,20 +266,27 @@ export default function AppContent() {
   }, [workspace, dashboardApi, reloadWorkspace]);
 
   const handleMoveProject = useCallback(async (projectName: string, targetRaccoglitoreId: number) => {
+    const current = workspace?.assignments.find((a) => a.project_name === projectName);
+    const targetRacc = workspace?.raccoglitori.find((r) => r.id === targetRaccoglitoreId);
+    if (!targetRacc) { alert('Cartella destinazione non trovata'); return; }
+    if (current && current.raccoglitore_id === targetRaccoglitoreId) return;
     try {
-      const current = workspace?.assignments.find((a) => a.project_name === projectName);
-      // Resolve target dashboard from raccoglitore_id
-      const targetRacc = workspace?.raccoglitori.find((r) => r.id === targetRaccoglitoreId);
-      if (!targetRacc) throw new Error('Cartella destinazione non trovata');
-      if (current && current.raccoglitore_id === targetRaccoglitoreId) return;
-      if (current) {
-        await dashboardApi.removeProject(current.dashboard_id, current.raccoglitore_id, projectName);
-      }
+      // Assign first: se fallisce, origine intatta. INSERT OR UPDATE è idempotente.
       await dashboardApi.assignProject(targetRacc.dashboard_id, targetRaccoglitoreId, projectName);
+      if (current) {
+        try {
+          await dashboardApi.removeProject(current.dashboard_id, current.raccoglitore_id, projectName);
+        } catch (removeErr) {
+          // Rollback del nuovo assignment per non lasciare duplicati
+          try { await dashboardApi.removeProject(targetRacc.dashboard_id, targetRaccoglitoreId, projectName); } catch { /* best-effort */ }
+          throw removeErr;
+        }
+      }
       await reloadWorkspace();
     } catch (e) {
       console.error(e);
       alert(e instanceof Error ? e.message : 'Errore spostamento progetto');
+      await reloadWorkspace();
     }
   }, [workspace, dashboardApi, reloadWorkspace]);
 

@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { authenticatedFetch } from '../../../utils/api';
 import type { Dashboard, Raccoglitore, DashboardViewMode, DashboardSortMode, FullWorkspace } from '../types/dashboard';
+import type { SessionProvider } from '../../../types/app';
 
 export function useDashboardApi() {
   const getDashboards = useCallback(async (): Promise<Dashboard[]> => {
@@ -137,6 +138,42 @@ export function useDashboardApi() {
     }
   }, []);
 
+  const renameProject = useCallback(async (projectName: string, displayName: string) => {
+    const res = await authenticatedFetch(
+      `/api/projects/${encodeURIComponent(projectName)}/rename`,
+      { method: 'PUT', body: JSON.stringify({ displayName }) },
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Rename fallito');
+    }
+  }, []);
+
+  const deleteProject = useCallback(async (projectName: string) => {
+    const res = await authenticatedFetch(
+      `/api/projects/${encodeURIComponent(projectName)}`,
+      { method: 'DELETE' },
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Eliminazione progetto fallita');
+    }
+  }, []);
+
+  const deleteSession = useCallback(async (projectName: string, sessionId: string, provider: SessionProvider) => {
+    if (provider === 'cursor') throw new Error('Eliminazione sessioni Cursor non supportata dal provider.');
+    const url = provider === 'claude'
+      ? `/api/projects/${encodeURIComponent(projectName)}/sessions/${encodeURIComponent(sessionId)}`
+      : provider === 'codex'
+        ? `/api/codex/sessions/${encodeURIComponent(sessionId)}`
+        : `/api/gemini/sessions/${encodeURIComponent(sessionId)}`;
+    const res = await authenticatedFetch(url, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || 'Eliminazione sessione fallita');
+    }
+  }, []);
+
   const setProjectFavorite = useCallback(async (projectName: string, isFavorite: boolean) => {
     const res = await authenticatedFetch(
       `/api/projects/${encodeURIComponent(projectName)}/favorite`,
@@ -168,6 +205,9 @@ export function useDashboardApi() {
     reorderProjects,
     setAssignmentFavorite,
     setProjectFavorite,
+    renameProject,
+    deleteProject,
+    deleteSession,
   }), [
     getDashboards, getDefaultDashboardId, getFullDashboard, getWorkspace,
     createDashboard, updateDashboard, deleteDashboard,
@@ -175,5 +215,6 @@ export function useDashboardApi() {
     createRaccoglitore, updateRaccoglitore, moveRaccoglitore, deleteRaccoglitore, reorderRaccoglitori,
     assignProject, removeProject, reorderProjects,
     setAssignmentFavorite, setProjectFavorite,
+    renameProject, deleteProject, deleteSession,
   ]);
 }
