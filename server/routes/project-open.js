@@ -264,6 +264,108 @@ function buildLinuxTerminalArgsForScript(terminalCmd, cwd, scriptPath) {
 }
 
 
+/**
+ * Risolve filePath assoluto controllando che ricada in una delle dir consentite:
+ * - ~/.claude/ (agenti globali, progetti claude, memoria)
+ * - <projectCwd>/.claude/ (agenti per-progetto) se projectName fornito
+ * Ritorna { resolved } o { error, status }.
+ */
+async function resolveAllowedFilePath(filePath, projectName) {
+  if (typeof filePath !== 'string' || !filePath.trim()) {
+    return { error: 'filePath is required', status: 400 };
+  }
+  const resolved = path.resolve(filePath);
+  const allowedRoots = [path.resolve(path.join(os.homedir(), '.claude'))];
+  if (typeof projectName === 'string' && projectName) {
+    try {
+      const cwd = await extractProjectDirectory(projectName);
+      if (cwd && fs.existsSync(cwd)) {
+        allowedRoots.push(path.resolve(path.join(cwd, '.claude')));
+      }
+    } catch { /* ignore lookup error */ }
+  }
+  const inAllowed = allowedRoots.some((root) => resolved === root || resolved.startsWith(root + path.sep));
+  if (!inAllowed) return { error: 'File path not in an allowed directory', status: 400 };
+  if (!fs.existsSync(resolved)) return { error: 'File not found', status: 404 };
+  try {
+    const stat = fs.lstatSync(resolved);
+    if (stat.isSymbolicLink()) {
+      const realTarget = fs.realpathSync(resolved);
+      const realIn = allowedRoots.some((root) => realTarget === root || realTarget.startsWith(root + path.sep));
+      if (!realIn) return { error: 'Symlink target not in allowed directory', status: 400 };
+    }
+  } catch { /* ignore stat error */ }
+  return { resolved };
+}
+
+// POST /api/project-open/file-in-file-manager — body: { filePath, projectName? }
+// Apre la directory contenente il file nel file manager dell'OS. Su Linux usa
+// xdg-open sulla parent dir; nautilus/dolphin verranno avviati con la cartella.
+router.post('/file-in-file-manager', async (req, res) => {
+  try {
+    const { filePath, projectName } = req.body || {};
+    const check = await resolveAllowedFilePath(filePath, projectName);
+    if (check.error) return res.status(check.status).json({ error: check.error });
+    const dir = path.dirname(check.resolved);
+
+    const platform = process.platform;
+    let command;
+    let args;
+    if (platform === 'darwin') {
+      command = 'open';
+      args = ['-R', check.resolved]; // -R rivela il file nel Finder
+    } else if (platform === 'win32') {
+      command = 'explorer';
+      args = [`/select,${check.resolved}`];
+    } else {
+      command = 'xdg-open';
+      args = [dir];
+    }
+
+    try {
+      const child = spawn(command, args, { detached: true, stdio: 'ignore', env: buildGuiEnv() });
+      child.on('error', (err) => console.error('File manager spawn error (file):', err));
+      child.unref();
+    } catch (err) {
+      return res.status(500).json({ error: `Failed to launch ${command}: ${err?.message || err}` });
+    }
+
+    res.json({ success: true, platform, command, path: dir });
+  } catch (error) {
+    console.error('Error opening file in file manager:', error);
+    res.status(500).json({ error: 'Failed to open file in file manager' });
+  }
+});
+
+// POST /api/project-open/file-in-ide — body: { filePath, projectName? }
+// Apre un singolo file nell'IDE configurato. Il file deve trovarsi dentro una
+// directory consentita (per evitare apertura arbitraria di qualunque path).
+router.post('/file-in-ide', async (req, res) => {
+  try {
+    const { filePath, projectName } = req.body || {};
+    const check = await resolveAllowedFilePath(filePath, projectName);
+    if (check.error) return res.status(check.status).json({ error: check.error });
+
+    const storedCommand = appConfigDb.get('ide_command') || DEFAULT_IDE_COMMAND;
+    const parts = storedCommand.split(/\s+/).filter(Boolean);
+    const command = parts[0];
+    const extraArgs = parts.slice(1);
+
+    try {
+      const child = spawn(command, [...extraArgs, check.resolved], { detached: true, stdio: 'ignore', env: buildGuiEnv() });
+      child.on('error', (err) => console.error('IDE spawn error (file):', err));
+      child.unref();
+    } catch (err) {
+      return res.status(500).json({ error: `Failed to launch ${command}: ${err?.message || err}` });
+    }
+
+    res.json({ success: true, command, path: check.resolved });
+  } catch (error) {
+    console.error('Error opening file in IDE:', error);
+    res.status(500).json({ error: 'Failed to open file in IDE' });
+  }
+});
+
 // POST /api/project-open/:projectName/in-terminal-with-claude — body: { resume, continueSession, permissionMode, model, verbose, debug }
 router.post('/:projectName/in-terminal-with-claude', async (req, res) => {
   try {
