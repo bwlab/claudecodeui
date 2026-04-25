@@ -17,6 +17,7 @@ import {
   openTab,
   activateTab,
   setTabView,
+  setTabTitle,
   updateTabSession,
   closeTab as closeTabAction,
   getTabsState,
@@ -622,6 +623,32 @@ export default function AppContent() {
     return title || null;
   }, [selectedSession]);
 
+  // Keep each tab's title in sync with the session/project metadata (which may load
+  // after the tab was opened, or change when the session is renamed elsewhere).
+  useEffect(() => {
+    for (const { tab, project, session } of tabContents) {
+      const expected = computeTabTitle(project, {
+        sessionId: tab.sessionId,
+        provider: tab.provider,
+        kind: tab.kind,
+      });
+      if (expected !== tab.title) setTabTitle(tab.id, expected);
+      // Avoid unused-variable warnings for `session` — already consumed by computeTabTitle.
+      void session;
+    }
+  }, [tabContents, computeTabTitle]);
+
+  // Tabs whose underlying session is currently processing — shown as pulsing dot in TabBar.
+  const processingTabIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const tab of tabs) {
+      if (tab.sessionId && processingSessions?.has(tab.sessionId)) {
+        ids.add(tab.id);
+      }
+    }
+    return ids;
+  }, [tabs, processingSessions]);
+
   // Per-tab setActiveTab factory: writes the chosen MainContent inner view into the tab.
   // Accepts both a direct value and an updater function (matches React's Dispatch<SetStateAction>).
   const makeSetActiveTab = useCallback(
@@ -668,7 +695,11 @@ export default function AppContent() {
       if (tabContents.length === 0) return null;
       return (
         <div className="flex h-full flex-col">
-          <TabBar onActivate={handleTabActivate} onClose={handleTabClose} />
+          <TabBar
+            onActivate={handleTabActivate}
+            onClose={handleTabClose}
+            processingTabIds={processingTabIds}
+          />
           <div className="relative flex min-h-0 flex-1 flex-col">
             {tabContents.map(({ tab, project, session, isNewSession }) => {
               const isActive = tab.id === activeTabId;
@@ -715,6 +746,7 @@ export default function AppContent() {
     },
     [
       tabContents, activeTabId, handleTabActivate, handleTabClose, makeSetActiveTab,
+      processingTabIds,
       ws, sendMessage, latestMessage, isMobile, setSidebarOpen, isLoadingProjects,
       setIsInputFocused, markSessionAsActive, markSessionAsInactive,
       markSessionAsProcessing, markSessionAsNotProcessing, processingSessions,
