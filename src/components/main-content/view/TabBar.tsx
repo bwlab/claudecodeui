@@ -145,7 +145,7 @@ export default function TabBar({ onActivate, onClose, processingTabIds }: TabBar
         {tabs.map((tab, idx) => {
           const isActive = tab.id === activeTabId;
           const isProcessing = processingTabIds?.has(tab.id) ?? false;
-          const Icon = tab.kind === 'shell' ? TerminalSquare : MessageSquare;
+          const Icon = tab.viewTab === 'shell' || tab.kind === 'shell' ? TerminalSquare : MessageSquare;
           return (
             <div
               key={tab.id}

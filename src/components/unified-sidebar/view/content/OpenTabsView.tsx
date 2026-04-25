@@ -110,7 +110,7 @@ export default function OpenTabsView({ projects, processingTabIds, onActivate }:
       <ul className="flex min-h-0 flex-1 flex-col divide-y divide-border/30 overflow-y-auto">
         {rows.map(({ tab, project, updatedAt, isProcessing }) => {
           const isActive = tab.id === activeTabId;
-          const KindIcon = tab.kind === 'shell' ? TerminalSquare : MessageSquare;
+          const KindIcon = tab.viewTab === 'shell' || tab.kind === 'shell' ? TerminalSquare : MessageSquare;
           const projectTitle = project?.displayName || project?.name || tab.projectName;
           const sessionLabel = tab.sessionId
             ? tab.title.split(' • ').slice(1).join(' • ') || tab.sessionId.slice(0, 8)

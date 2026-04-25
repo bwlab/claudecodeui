@@ -34,6 +34,8 @@ interface UnifiedShellProps {
   onOpenSettings?: () => void;
   /** When Location is project|session, the parent passes MainContent here. Otherwise ignored. */
   projectContent?: ReactNode;
+  /** Tab bar rendered above the breadcrumb so tabs stay visible across folder/preset views. */
+  tabBarNode?: ReactNode;
   /** Number of open tabs (drives the "Sessioni aperte" preset badge). */
   openTabsCount?: number;
   /** Tabs whose underlying session is currently processing (forwarded to OpenTabsView). */
@@ -43,7 +45,7 @@ interface UnifiedShellProps {
 }
 
 export default function UnifiedShell(props: UnifiedShellProps) {
-  const { workspace, projects, projectContent } = props;
+  const { workspace, projects, projectContent, tabBarNode } = props;
   const { location, setLocation, goToPreset, goHome } = useUnifiedLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const { isMobile } = useDeviceSettings({ trackPWA: false });
@@ -214,6 +216,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
+          {tabBarNode}
           <UnifiedBreadcrumb
             location={location}
             workspace={workspace}

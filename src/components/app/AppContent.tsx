@@ -690,16 +690,22 @@ export default function AppContent() {
     [replaceTemporarySession, projects, computeTabTitle],
   );
 
+  const tabBarNode = useMemo(
+    () => (
+      <TabBar
+        onActivate={handleTabActivate}
+        onClose={handleTabClose}
+        processingTabIds={processingTabIds}
+      />
+    ),
+    [handleTabActivate, handleTabClose, processingTabIds],
+  );
+
   const projectContent = useMemo(
     () => {
       if (tabContents.length === 0) return null;
       return (
         <div className="flex h-full flex-col">
-          <TabBar
-            onActivate={handleTabActivate}
-            onClose={handleTabClose}
-            processingTabIds={processingTabIds}
-          />
           <div className="relative flex min-h-0 flex-1 flex-col">
             {tabContents.map(({ tab, project, session, isNewSession }) => {
               const isActive = tab.id === activeTabId;
@@ -745,8 +751,7 @@ export default function AppContent() {
       );
     },
     [
-      tabContents, activeTabId, handleTabActivate, handleTabClose, makeSetActiveTab,
-      processingTabIds,
+      tabContents, activeTabId, makeSetActiveTab,
       ws, sendMessage, latestMessage, isMobile, setSidebarOpen, isLoadingProjects,
       setIsInputFocused, markSessionAsActive, markSessionAsInactive,
       markSessionAsProcessing, markSessionAsNotProcessing, processingSessions,
@@ -782,6 +787,7 @@ export default function AppContent() {
         onOpenProjectShell={handleOpenShellForProject}
         onOpenSettings={() => setShowSettings(true)}
         projectContent={projectContent}
+        tabBarNode={tabBarNode}
         openTabsCount={tabs.length}
         processingTabIds={processingTabIds}
         onActivateTab={handleTabActivate}
