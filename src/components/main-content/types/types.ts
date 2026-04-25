@@ -35,6 +35,7 @@ export type PrdFile = {
 export type MainContentProps = {
   selectedProject: Project | null;
   selectedSession: ProjectSession | null;
+  isNewSession: boolean;
   activeTab: AppTab;
   setActiveTab: Dispatch<SetStateAction<AppTab>>;
   ws: WebSocket | null;
@@ -51,18 +52,26 @@ export type MainContentProps = {
   processingSessions: Set<string>;
   onReplaceTemporarySession: SessionLifecycleHandler;
   onNavigateToSession: (targetSessionId: string) => void;
+  onNewSession: () => void;
+  onBackToKanban: () => void;
+  onSessionUpdated: () => void;
+  onSessionDeleted: (sessionId: string) => void;
   onShowSettings: () => void;
   externalMessageUpdate: number;
+  projects: Project[];
+  onRenameProject?: (projectName: string, currentDisplayName?: string) => void;
 };
 
 export type MainContentHeaderProps = {
   activeTab: AppTab;
   setActiveTab: Dispatch<SetStateAction<AppTab>>;
-  selectedProject: Project;
+  selectedProject: Project | null;
   selectedSession: ProjectSession | null;
   shouldShowTasksTab: boolean;
   isMobile: boolean;
   onMenuClick: () => void;
+  onBackToKanban?: () => void;
+  onRenameProject?: (projectName: string, currentDisplayName?: string) => void;
 };
 
 export type MainContentStateViewProps = {

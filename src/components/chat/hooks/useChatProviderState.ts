@@ -18,7 +18,12 @@ export function useChatProviderState({ selectedSession }: UseChatProviderStateAr
     return localStorage.getItem('cursor-model') || CURSOR_MODELS.DEFAULT;
   });
   const [claudeModel, setClaudeModel] = useState<string>(() => {
-    return localStorage.getItem('claude-model') || CLAUDE_MODELS.DEFAULT;
+    const stored = localStorage.getItem('claude-model');
+    // Discard stale models that were removed from the official list
+    // (e.g. the old `opus[1m]` / `sonnet[1m]` aliases)
+    if (stored && CLAUDE_MODELS.OPTIONS.some((m) => m.value === stored)) return stored;
+    if (stored) localStorage.setItem('claude-model', CLAUDE_MODELS.DEFAULT);
+    return CLAUDE_MODELS.DEFAULT;
   });
   const [codexModel, setCodexModel] = useState<string>(() => {
     return localStorage.getItem('codex-model') || CODEX_MODELS.DEFAULT;

@@ -1101,6 +1101,36 @@ async function renameProject(projectName, newDisplayName) {
   return true;
 }
 
+// Update a project's actual path (originalPath override in config)
+async function updateProjectPath(projectName, newPath) {
+  const absolutePath = path.resolve(newPath);
+
+  // Verify path exists
+  try {
+    const stats = await fs.stat(absolutePath);
+    if (!stats.isDirectory()) {
+      throw new Error('Il percorso specificato non è una directory');
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error('Il percorso specificato non esiste');
+    }
+    throw error;
+  }
+
+  const config = await loadProjectConfig();
+  config[projectName] = {
+    ...config[projectName],
+    originalPath: absolutePath,
+  };
+  await saveProjectConfig(config);
+
+  // Clear cache so next discovery picks up new path
+  projectDirectoryCache.delete(projectName);
+
+  return absolutePath;
+}
+
 // Delete a session from a project
 async function deleteSession(projectName, sessionId) {
   const projectDir = path.join(os.homedir(), '.claude', 'projects', projectName);
@@ -1151,6 +1181,104 @@ async function deleteSession(projectName, sessionId) {
     console.error(`Error deleting session ${sessionId} from project ${projectName}:`, error);
     throw error;
   }
+}
+
+/**
+ * Moves a Claude session from one project to another.
+ * - Finds the jsonl file containing the session
+ * - Rewrites every line's `cwd` field to point to the target project's real path
+ * - Writes the session's lines into `<targetProjectEncoded>/<sessionId>.jsonl`
+ * - Removes the session's lines from the source file (or deletes it if the session
+ *   was the only content)
+ */
+async function moveClaudeSessionToProject(sourceProjectName, sessionId, targetProjectName) {
+  if (sourceProjectName === targetProjectName) {
+    throw new Error('Source and target projects are the same');
+  }
+
+  const projectsRoot = path.join(os.homedir(), '.claude', 'projects');
+  const sourceDir = path.join(projectsRoot, sourceProjectName);
+  const targetDir = path.join(projectsRoot, targetProjectName);
+
+  if (!fsSync.existsSync(sourceDir)) {
+    throw new Error(`Source project directory not found: ${sourceDir}`);
+  }
+
+  const targetCwd = await extractProjectDirectory(targetProjectName);
+  if (!targetCwd) {
+    throw new Error(`Could not resolve cwd for target project ${targetProjectName}`);
+  }
+
+  // Locate the file containing this session
+  const files = (await fs.readdir(sourceDir)).filter((f) => f.endsWith('.jsonl'));
+  let sourceFile = null;
+  let allLines = null;
+  for (const file of files) {
+    const fullPath = path.join(sourceDir, file);
+    const content = await fs.readFile(fullPath, 'utf8');
+    const lines = content.split('\n');
+    const hasSession = lines.some((line) => {
+      if (!line.trim()) return false;
+      try {
+        return JSON.parse(line).sessionId === sessionId;
+      } catch { return false; }
+    });
+    if (hasSession) {
+      sourceFile = fullPath;
+      allLines = lines;
+      break;
+    }
+  }
+
+  if (!sourceFile || !allLines) {
+    throw new Error(`Session ${sessionId} not found in project ${sourceProjectName}`);
+  }
+
+  // Split into: lines belonging to the session (to move) and the rest (to keep)
+  const sessionLines = [];
+  const remainingLines = [];
+  for (const line of allLines) {
+    if (!line.trim()) {
+      remainingLines.push(line);
+      continue;
+    }
+    try {
+      const data = JSON.parse(line);
+      if (data.sessionId === sessionId) {
+        // Rewrite cwd to target
+        if (data.cwd !== undefined) data.cwd = targetCwd;
+        sessionLines.push(JSON.stringify(data));
+      } else {
+        remainingLines.push(line);
+      }
+    } catch {
+      // Malformed lines stay where they are
+      remainingLines.push(line);
+    }
+  }
+
+  // Write target file
+  if (!fsSync.existsSync(targetDir)) {
+    await fs.mkdir(targetDir, { recursive: true });
+  }
+  const targetFile = path.join(targetDir, `${sessionId}.jsonl`);
+  if (fsSync.existsSync(targetFile)) {
+    throw new Error(`Target file already exists: ${targetFile}`);
+  }
+  await fs.writeFile(targetFile, sessionLines.join('\n') + (sessionLines.length > 0 ? '\n' : ''));
+
+  // Update source: keep remaining lines, or delete file if empty
+  const remainingNonEmpty = remainingLines.filter((l) => l.trim()).length;
+  if (remainingNonEmpty === 0) {
+    await fs.unlink(sourceFile);
+  } else {
+    await fs.writeFile(sourceFile, remainingLines.join('\n'));
+  }
+
+  // Invalidate cached project resolution
+  clearProjectDirectoryCache();
+
+  return { sourceFile, targetFile, targetCwd };
 }
 
 // Check if a project is empty (has no sessions)
@@ -2545,6 +2673,7 @@ export {
   parseJsonlSessions,
   renameProject,
   deleteSession,
+  moveClaudeSessionToProject,
   isProjectEmpty,
   deleteProject,
   addProjectManually,
@@ -2557,5 +2686,6 @@ export {
   deleteCodexSession,
   getGeminiCliSessions,
   getGeminiCliSessionMessages,
-  searchConversations
+  searchConversations,
+  updateProjectPath
 };

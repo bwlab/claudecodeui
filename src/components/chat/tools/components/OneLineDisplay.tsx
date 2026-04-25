@@ -123,7 +123,7 @@ export const OneLineDisplay: React.FC<OneLineDisplayProps> = ({
         <span className="text-[10px] text-gray-300 dark:text-gray-600">/</span>
         <button
           onClick={handleAction}
-          className="truncate font-mono text-xs text-blue-600 transition-colors hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+          className="truncate font-mono text-xs text-primary transition-colors hover:text-primary hover:underline dark:text-primary dark:hover:text-primary"
           title={value}
         >
           {displayName}
@@ -149,7 +149,7 @@ export const OneLineDisplay: React.FC<OneLineDisplayProps> = ({
         {toolResult && (
           <a
             href={`#tool-result-${toolId}`}
-            className="flex flex-shrink-0 items-center gap-0.5 text-[11px] text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            className="flex flex-shrink-0 items-center gap-0.5 text-[11px] text-primary transition-colors hover:text-primary dark:text-primary dark:hover:text-primary"
           >
             <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

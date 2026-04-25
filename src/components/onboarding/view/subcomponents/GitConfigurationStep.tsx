@@ -18,8 +18,8 @@ export default function GitConfigurationStep({
   return (
     <div className="space-y-6">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-          <GitBranch className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/30">
+          <GitBranch className="h-8 w-8 text-primary dark:text-primary" />
         </div>
         <h2 className="mb-2 text-2xl font-bold text-foreground">Git Configuration</h2>
         <p className="text-muted-foreground">
@@ -38,7 +38,7 @@ export default function GitConfigurationStep({
             id="gitName"
             value={gitName}
             onChange={(event) => onGitNameChange(event.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="John Doe"
             required
             disabled={isSubmitting}
@@ -56,7 +56,7 @@ export default function GitConfigurationStep({
             id="gitEmail"
             value={gitEmail}
             onChange={(event) => onGitEmailChange(event.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="john@example.com"
             required
             disabled={isSubmitting}

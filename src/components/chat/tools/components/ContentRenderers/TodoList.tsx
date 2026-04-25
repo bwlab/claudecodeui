@@ -37,9 +37,9 @@ const STATUS_CONFIG: Record<TodoStatus, StatusConfig> = {
   },
   in_progress: {
     icon: Clock,
-    iconClassName: 'w-3.5 h-3.5 text-blue-500 dark:text-blue-400',
+    iconClassName: 'w-3.5 h-3.5 text-primary dark:text-primary',
     badgeClassName:
-      'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800',
+      'bg-primary/10 dark:bg-primary/30 text-foreground dark:text-muted-foreground border-primary/20 dark:border-primary/20',
     textClassName: 'text-gray-900 dark:text-gray-100',
   },
   pending: {

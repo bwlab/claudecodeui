@@ -26,7 +26,7 @@ export default function TaskHelpModal({ isOpen, onClose, onCreatePrd }: TaskHelp
       index: 1,
       title: t('gettingStarted.steps.createPRD.title'),
       description: t('gettingStarted.steps.createPRD.description'),
-      accent: 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40',
+      accent: 'border-primary/20 dark:border-primary/20 bg-primary/5 dark:bg-primary/10',
     },
     {
       index: 2,
@@ -53,8 +53,8 @@ export default function TaskHelpModal({ isOpen, onClose, onCreatePrd }: TaskHelp
       <div className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
-              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/50">
+              <FileText className="h-5 w-5 text-primary dark:text-primary" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('helpGuide.title')}</h2>
@@ -75,7 +75,7 @@ export default function TaskHelpModal({ isOpen, onClose, onCreatePrd }: TaskHelp
           {steps.map((step) => (
             <div key={step.index} className={`rounded-lg border p-4 ${step.accent}`}>
               <div className="flex gap-4">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
                   {step.index}
                 </div>
                 <div>
@@ -109,14 +109,14 @@ export default function TaskHelpModal({ isOpen, onClose, onCreatePrd }: TaskHelp
             </ul>
           </div>
 
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/40">
-            <h4 className="mb-2 font-medium text-blue-900 dark:text-blue-100">{t('helpGuide.learnMore.title')}</h4>
-            <p className="mb-3 text-sm text-blue-800 dark:text-blue-200">{t('helpGuide.learnMore.description')}</p>
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 dark:border-primary/20 dark:bg-primary/10">
+            <h4 className="mb-2 font-medium text-foreground dark:text-muted-foreground">{t('helpGuide.learnMore.title')}</h4>
+            <p className="mb-3 text-sm text-foreground dark:text-muted-foreground">{t('helpGuide.learnMore.description')}</p>
             <a
               href="https://github.com/eyaltoledano/claude-task-master"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90"
             >
               {t('helpGuide.learnMore.githubButton')}
               <ExternalLink className="h-4 w-4" />

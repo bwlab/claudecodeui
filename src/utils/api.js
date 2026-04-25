@@ -81,6 +81,16 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ summary, provider }),
     }),
+  moveSession: (projectName, sessionId, targetProjectName) =>
+    authenticatedFetch(`/api/projects/${projectName}/sessions/${sessionId}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ targetProjectName }),
+    }),
+  updateProjectPath: (projectName, path) =>
+    authenticatedFetch(`/api/projects/${encodeURIComponent(projectName)}/path`, {
+      method: 'PUT',
+      body: JSON.stringify({ path }),
+    }),
   deleteCodexSession: (sessionId) =>
     authenticatedFetch(`/api/codex/sessions/${sessionId}`, {
       method: 'DELETE',

@@ -36,7 +36,7 @@ const agentConfig: Record<AgentProvider, AgentConfig> = {
 
 const colorClasses = {
   blue: {
-    dot: 'bg-blue-500',
+    dot: 'bg-primary',
   },
   purple: {
     dot: 'bg-purple-500',

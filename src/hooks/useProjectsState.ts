@@ -136,6 +136,7 @@ export function useProjectsState({
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedSession, setSelectedSession] = useState<ProjectSession | null>(null);
+  const [isNewSession, setIsNewSession] = useState(false);
   const [activeTab, setActiveTab] = useState<AppTab>(readPersistedTab);
 
   useEffect(() => {
@@ -374,19 +375,49 @@ export function useProjectsState({
   const handleProjectSelect = useCallback(
     (project: Project) => {
       setSelectedProject(project);
-      setSelectedSession(null);
-      navigate('/');
+
+      const allSessions: ProjectSession[] = [
+        ...(project.sessions ?? []),
+        ...(project.cursorSessions ?? []),
+        ...(project.codexSessions ?? []),
+        ...(project.geminiSessions ?? []),
+      ];
+      const latest = allSessions
+        .map((s) => {
+          const raw = s.updated_at || s.lastActivity || s.createdAt || s.created_at;
+          const t = raw ? new Date(raw as string).getTime() : NaN;
+          return { s, t };
+        })
+        .filter((x) => !isNaN(x.t))
+        .sort((a, b) => b.t - a.t)[0]?.s;
+
+      if (latest) {
+        setSelectedSession(latest);
+        setIsNewSession(false);
+        setActiveTab('chat');
+        const provider = localStorage.getItem('selected-provider') || 'claude';
+        if (provider === 'cursor') {
+          sessionStorage.setItem('cursorSessionId', latest.id);
+        }
+        navigate(`/session/${latest.id}`);
+      } else {
+        setSelectedSession(null);
+        setIsNewSession(true);
+        setActiveTab('chat');
+        navigate('/');
+      }
 
       if (isMobile) {
         setSidebarOpen(false);
       }
     },
-    [isMobile, navigate],
+    [isMobile, navigate, setActiveTab],
   );
 
   const handleSessionSelect = useCallback(
     (session: ProjectSession) => {
       setSelectedSession(session);
+      setIsNewSession(false);
 
       if (activeTab === 'tasks' || activeTab === 'preview') {
         setActiveTab('chat');
@@ -415,6 +446,7 @@ export function useProjectsState({
     (project: Project) => {
       setSelectedProject(project);
       setSelectedSession(null);
+      setIsNewSession(true);
       setActiveTab('chat');
       navigate('/');
 
@@ -424,6 +456,13 @@ export function useProjectsState({
     },
     [isMobile, navigate],
   );
+
+  const handleBackToKanban = useCallback(() => {
+    setSelectedSession(null);
+    setIsNewSession(false);
+    setActiveTab('chat');
+    navigate('/');
+  }, [navigate]);
 
   const handleSessionDelete = useCallback(
     (sessionIdToDelete: string) => {
@@ -546,6 +585,7 @@ export function useProjectsState({
     projects,
     selectedProject,
     selectedSession,
+    isNewSession,
     activeTab,
     sidebarOpen,
     isLoadingProjects,
@@ -562,9 +602,13 @@ export function useProjectsState({
     fetchProjects,
     refreshProjectsSilently,
     sidebarSharedProps,
+    setSelectedProject,
+    setSelectedSession,
+    setIsNewSession,
     handleProjectSelect,
     handleSessionSelect,
     handleNewSession,
+    handleBackToKanban,
     handleSessionDelete,
     handleProjectDelete,
     handleSidebarRefresh,

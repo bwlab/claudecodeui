@@ -17,6 +17,7 @@ import ClaudeStatus from './ClaudeStatus';
 import ImageAttachment from './ImageAttachment';
 import PermissionRequestsBanner from './PermissionRequestsBanner';
 import ChatInputControls from './ChatInputControls';
+import ChatStatusBar from './ChatStatusBar';
 
 interface MentionableFile {
   name: string;
@@ -90,6 +91,13 @@ interface ChatComposerProps {
   placeholder: string;
   isTextareaExpanded: boolean;
   sendByCtrlEnter?: boolean;
+  onBackToKanban?: () => void;
+  selectedModel: string;
+  onModelChange: (modelId: string) => void;
+  currentSessionId?: string | null;
+  appVersion?: string;
+  onOpenContext?: () => void;
+  terminalProjectName?: string | null;
 }
 
 export default function ChatComposer({
@@ -146,6 +154,13 @@ export default function ChatComposer({
   placeholder,
   isTextareaExpanded,
   sendByCtrlEnter,
+  onBackToKanban,
+  selectedModel,
+  onModelChange,
+  currentSessionId,
+  appVersion,
+  onOpenContext,
+  terminalProjectName,
 }: ChatComposerProps) {
   const { t } = useTranslation('chat');
   const textareaRect = textareaRef.current?.getBoundingClientRect();
@@ -199,6 +214,11 @@ export default function ChatComposer({
           isUserScrolledUp={isUserScrolledUp}
           hasMessages={hasMessages}
           onScrollToBottom={onScrollToBottom}
+          onBackToKanban={onBackToKanban}
+          terminalProjectName={terminalProjectName}
+          terminalSessionId={currentSessionId}
+          selectedModel={selectedModel}
+          onModelChange={onModelChange}
         />}
       </div>
 
@@ -346,6 +366,20 @@ export default function ChatComposer({
           </div>
         </div>
       </form>}
+
+      {!hasQuestionPanel && (
+        <div className="mx-auto mt-2 max-w-4xl">
+          <ChatStatusBar
+            provider={provider}
+            selectedModel={selectedModel}
+            permissionMode={permissionMode}
+            tokenBudget={tokenBudget}
+            sessionId={currentSessionId}
+            appVersion={appVersion}
+            onOpenContext={onOpenContext}
+          />
+        </div>
+      )}
     </div>
   );
 }

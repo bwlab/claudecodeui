@@ -130,7 +130,7 @@ export default function ChatMessagesPane({
       ref={scrollContainerRef}
       onWheel={onWheel}
       onTouchMove={onTouchMove}
-      className="relative flex-1 space-y-3 overflow-y-auto overflow-x-hidden px-0 py-3 sm:space-y-4 sm:p-4"
+      className="relative flex-1 space-y-3 overflow-y-auto overflow-x-hidden bg-muted/20 px-0 py-3 sm:space-y-4 sm:p-4"
     >
       {isLoadingSessionMessages && chatMessages.length === 0 ? (
         <div className="mt-8 text-center text-gray-500 dark:text-gray-400">
@@ -195,7 +195,7 @@ export default function ChatMessagesPane({
                 </div>
               ) : (
                 <button
-                  className="pointer-events-auto flex items-center space-x-2 rounded-full bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-lg transition-all duration-200 hover:scale-105 hover:bg-blue-700 disabled:cursor-wait disabled:opacity-75 dark:bg-blue-500 dark:hover:bg-blue-600"
+                  className="pointer-events-auto flex items-center space-x-2 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-white shadow-lg transition-all duration-200 hover:scale-105 hover:bg-primary/90 disabled:cursor-wait disabled:opacity-75 dark:bg-primary dark:hover:bg-primary"
                   onClick={loadAllMessages}
                   disabled={isLoadingAllMessages}
                 >
@@ -224,12 +224,12 @@ export default function ChatMessagesPane({
           {!hasMoreMessages && chatMessages.length > visibleMessageCount && (
             <div className="border-b border-gray-200 py-2 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
               {t('session.messages.showingLast', { count: visibleMessageCount, total: chatMessages.length })} |
-              <button className="ml-1 text-blue-600 underline hover:text-blue-700" onClick={loadEarlierMessages}>
+              <button className="ml-1 text-primary underline hover:text-primary" onClick={loadEarlierMessages}>
                 {t('session.messages.loadEarlier')}
               </button>
               {' | '}
               <button
-                className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                className="text-primary underline hover:text-primary dark:text-primary dark:hover:text-primary"
                 onClick={loadAllMessages}
               >
                 {t('session.messages.loadAll')}

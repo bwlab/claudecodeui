@@ -148,6 +148,133 @@ const runMigrations = () => {
     )`);
     db.exec('CREATE INDEX IF NOT EXISTS idx_session_names_lookup ON session_names(session_id, provider)');
 
+    // Kanban board tables
+    db.exec(`CREATE TABLE IF NOT EXISTS kanban_columns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_name TEXT NOT NULL,
+      column_name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      is_default BOOLEAN NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_kanban_columns_project ON kanban_columns(project_name)');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS kanban_session_assignments (
+      session_id TEXT NOT NULL,
+      column_id INTEGER NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (session_id),
+      FOREIGN KEY (column_id) REFERENCES kanban_columns(id) ON DELETE CASCADE
+    )`);
+
+    db.exec(`CREATE TABLE IF NOT EXISTS session_notes (
+      session_id TEXT NOT NULL,
+      project_name TEXT NOT NULL,
+      note_text TEXT NOT NULL DEFAULT '',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (session_id, project_name)
+    )`);
+
+    db.exec(`CREATE TABLE IF NOT EXISTS session_labels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_name TEXT NOT NULL,
+      label_name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#3b82f6',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_session_labels_project ON session_labels(project_name)');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS session_label_assignments (
+      session_id TEXT NOT NULL,
+      label_id INTEGER NOT NULL,
+      PRIMARY KEY (session_id, label_id),
+      FOREIGN KEY (label_id) REFERENCES session_labels(id) ON DELETE CASCADE
+    )`);
+
+    // Dashboard tables
+    db.exec(`CREATE TABLE IF NOT EXISTS dashboards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      is_default BOOLEAN NOT NULL DEFAULT 0,
+      sort_mode TEXT NOT NULL DEFAULT 'alpha',
+      view_mode TEXT NOT NULL DEFAULT 'kanban',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_dashboards_user ON dashboards(user_id)');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS dashboard_raccoglitori (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      dashboard_id INTEGER NOT NULL,
+      parent_id INTEGER,
+      depth INTEGER NOT NULL DEFAULT 0,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#3b82f6',
+      icon TEXT NOT NULL DEFAULT 'Folder',
+      notes TEXT DEFAULT '',
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_id) REFERENCES dashboard_raccoglitori(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_raccoglitori_dashboard ON dashboard_raccoglitori(dashboard_id)');
+
+    // Migration: add parent_id/depth to existing dashboard_raccoglitori tables
+    const raccoglitoriInfo = db.prepare("PRAGMA table_info(dashboard_raccoglitori)").all();
+    const raccoglitoriCols = raccoglitoriInfo.map(col => col.name);
+    if (!raccoglitoriCols.includes('parent_id')) {
+      console.log('Running migration: Adding parent_id column to dashboard_raccoglitori');
+      db.exec('ALTER TABLE dashboard_raccoglitori ADD COLUMN parent_id INTEGER REFERENCES dashboard_raccoglitori(id) ON DELETE CASCADE');
+    }
+    if (!raccoglitoriCols.includes('depth')) {
+      console.log('Running migration: Adding depth column to dashboard_raccoglitori');
+      db.exec('ALTER TABLE dashboard_raccoglitori ADD COLUMN depth INTEGER NOT NULL DEFAULT 0');
+    }
+    db.exec('CREATE INDEX IF NOT EXISTS idx_raccoglitori_parent ON dashboard_raccoglitori(parent_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_raccoglitori_dashboard_parent ON dashboard_raccoglitori(dashboard_id, parent_id)');
+
+    db.exec(`CREATE TABLE IF NOT EXISTS dashboard_project_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      raccoglitore_id INTEGER NOT NULL,
+      project_name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      is_favorite INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (raccoglitore_id) REFERENCES dashboard_raccoglitori(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_dpa_unique ON dashboard_project_assignments(raccoglitore_id, project_name)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_dpa_raccoglitore ON dashboard_project_assignments(raccoglitore_id)');
+
+    // Migration: add is_favorite column to existing dashboard_project_assignments tables
+    const dpaInfo = db.prepare("PRAGMA table_info(dashboard_project_assignments)").all();
+    const dpaCols = dpaInfo.map(col => col.name);
+    if (!dpaCols.includes('is_favorite')) {
+      console.log('Running migration: Adding is_favorite column to dashboard_project_assignments');
+      db.exec('ALTER TABLE dashboard_project_assignments ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0');
+    }
+    db.exec('CREATE INDEX IF NOT EXISTS idx_dpa_favorite ON dashboard_project_assignments(is_favorite) WHERE is_favorite = 1');
+
+    // Favorites for orphan (unassigned) projects
+    db.exec(`CREATE TABLE IF NOT EXISTS user_favorite_projects (
+      user_id INTEGER NOT NULL,
+      project_name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, project_name),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_user_fav_projects_user ON user_favorite_projects(user_id)');
+
+    // Session archives
+    db.exec(`CREATE TABLE IF NOT EXISTS session_archives (
+      session_id TEXT NOT NULL,
+      project_name TEXT NOT NULL,
+      archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (session_id, project_name)
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_session_archives_project ON session_archives(project_name)');
+
     console.log('Database migrations completed successfully');
   } catch (error) {
     console.error('Error running migrations:', error.message);
@@ -596,6 +723,490 @@ const appConfigDb = {
   }
 };
 
+// Kanban board database operations
+const kanbanDb = {
+  getColumns: (projectName) => {
+    return db.prepare(
+      'SELECT id, project_name, column_name, position, is_default FROM kanban_columns WHERE project_name = ? ORDER BY position'
+    ).all(projectName);
+  },
+
+  createColumn: (projectName, columnName, isDefault = false) => {
+    const maxPos = db.prepare(
+      'SELECT COALESCE(MAX(position), -1) as maxPos FROM kanban_columns WHERE project_name = ?'
+    ).get(projectName);
+    const position = (maxPos?.maxPos ?? -1) + 1;
+    const result = db.prepare(
+      'INSERT INTO kanban_columns (project_name, column_name, position, is_default) VALUES (?, ?, ?, ?)'
+    ).run(projectName, columnName, position, isDefault ? 1 : 0);
+    return { id: result.lastInsertRowid, projectName, columnName, position, isDefault };
+  },
+
+  updateColumn: (columnId, columnName, position) => {
+    if (columnName !== undefined && position !== undefined) {
+      db.prepare('UPDATE kanban_columns SET column_name = ?, position = ? WHERE id = ?').run(columnName, position, columnId);
+    } else if (columnName !== undefined) {
+      db.prepare('UPDATE kanban_columns SET column_name = ? WHERE id = ?').run(columnName, columnId);
+    } else if (position !== undefined) {
+      db.prepare('UPDATE kanban_columns SET position = ? WHERE id = ?').run(position, columnId);
+    }
+  },
+
+  reorderColumns: (projectName, columnIds) => {
+    const stmt = db.prepare('UPDATE kanban_columns SET position = ? WHERE id = ? AND project_name = ?');
+    const transaction = db.transaction((ids) => {
+      ids.forEach((id, index) => stmt.run(index, id, projectName));
+    });
+    transaction(columnIds);
+  },
+
+  deleteColumn: (columnId) => {
+    db.prepare('DELETE FROM kanban_columns WHERE id = ? AND is_default = 0').run(columnId);
+  },
+
+  getDefaultColumn: (projectName) => {
+    return db.prepare(
+      'SELECT id FROM kanban_columns WHERE project_name = ? AND is_default = 1 LIMIT 1'
+    ).get(projectName);
+  },
+
+  getAssignments: (projectName) => {
+    return db.prepare(`
+      SELECT sa.session_id, sa.column_id, sa.position
+      FROM kanban_session_assignments sa
+      JOIN kanban_columns c ON sa.column_id = c.id
+      WHERE c.project_name = ?
+      ORDER BY sa.position
+    `).all(projectName);
+  },
+
+  assignSession: (sessionId, columnId, position) => {
+    db.prepare(`
+      INSERT INTO kanban_session_assignments (session_id, column_id, position)
+      VALUES (?, ?, ?)
+      ON CONFLICT(session_id) DO UPDATE SET column_id = excluded.column_id, position = excluded.position
+    `).run(sessionId, columnId, position);
+  },
+
+  getNotes: (projectName) => {
+    return db.prepare(
+      'SELECT session_id, note_text, updated_at FROM session_notes WHERE project_name = ?'
+    ).all(projectName);
+  },
+
+  setNote: (sessionId, projectName, noteText) => {
+    db.prepare(`
+      INSERT INTO session_notes (session_id, project_name, note_text, updated_at)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(session_id, project_name) DO UPDATE SET note_text = excluded.note_text, updated_at = CURRENT_TIMESTAMP
+    `).run(sessionId, projectName, noteText);
+  },
+
+  getLabels: (projectName) => {
+    return db.prepare(
+      'SELECT id, label_name, color FROM session_labels WHERE project_name = ? ORDER BY label_name'
+    ).all(projectName);
+  },
+
+  createLabel: (projectName, labelName, color) => {
+    const result = db.prepare(
+      'INSERT INTO session_labels (project_name, label_name, color) VALUES (?, ?, ?)'
+    ).run(projectName, labelName, color);
+    return { id: result.lastInsertRowid, labelName, color };
+  },
+
+  updateLabel: (labelId, labelName, color) => {
+    db.prepare('UPDATE session_labels SET label_name = ?, color = ? WHERE id = ?').run(labelName, color, labelId);
+  },
+
+  deleteLabel: (labelId) => {
+    db.prepare('DELETE FROM session_labels WHERE id = ?').run(labelId);
+  },
+
+  getLabelAssignments: (projectName) => {
+    return db.prepare(`
+      SELECT sla.session_id, sla.label_id
+      FROM session_label_assignments sla
+      JOIN session_labels sl ON sla.label_id = sl.id
+      WHERE sl.project_name = ?
+    `).all(projectName);
+  },
+
+  assignLabel: (sessionId, labelId) => {
+    db.prepare(
+      'INSERT OR IGNORE INTO session_label_assignments (session_id, label_id) VALUES (?, ?)'
+    ).run(sessionId, labelId);
+  },
+
+  removeLabel: (sessionId, labelId) => {
+    db.prepare(
+      'DELETE FROM session_label_assignments WHERE session_id = ? AND label_id = ?'
+    ).run(sessionId, labelId);
+  },
+
+  getFullBoard: (projectName) => {
+    const columns = kanbanDb.getColumns(projectName);
+
+    if (columns.length === 0) {
+      const defaultCol = kanbanDb.createColumn(projectName, 'Tutte le sessioni', true);
+      columns.push({ id: defaultCol.id, project_name: projectName, column_name: 'Tutte le sessioni', position: 0, is_default: 1 });
+    }
+
+    const assignments = kanbanDb.getAssignments(projectName);
+    const notes = kanbanDb.getNotes(projectName);
+    const labels = kanbanDb.getLabels(projectName);
+    const labelAssignments = kanbanDb.getLabelAssignments(projectName);
+
+    return { columns, assignments, notes, labels, labelAssignments };
+  },
+
+  getArchivedSessions: (projectName) => {
+    return db.prepare(
+      'SELECT session_id, archived_at FROM session_archives WHERE project_name = ? ORDER BY archived_at DESC'
+    ).all(projectName);
+  },
+
+  archiveSession: (projectName, sessionId) => {
+    db.prepare(
+      'INSERT OR IGNORE INTO session_archives (session_id, project_name) VALUES (?, ?)'
+    ).run(sessionId, projectName);
+  },
+
+  unarchiveSession: (projectName, sessionId) => {
+    db.prepare(
+      'DELETE FROM session_archives WHERE session_id = ? AND project_name = ?'
+    ).run(sessionId, projectName);
+  },
+
+  isSessionArchived: (projectName, sessionId) => {
+    const row = db.prepare(
+      'SELECT 1 FROM session_archives WHERE session_id = ? AND project_name = ?'
+    ).get(sessionId, projectName);
+    return !!row;
+  },
+};
+
+const dashboardDb = {
+  // --- Dashboard CRUD ---
+  getDashboards: (userId) => {
+    return db.prepare(
+      'SELECT id, user_id, name, position, is_default, sort_mode, view_mode FROM dashboards WHERE user_id = ? ORDER BY position'
+    ).all(userId);
+  },
+
+  createDashboard: (userId, name) => {
+    const maxPos = db.prepare(
+      'SELECT COALESCE(MAX(position), -1) as maxPos FROM dashboards WHERE user_id = ?'
+    ).get(userId);
+    const position = (maxPos?.maxPos ?? -1) + 1;
+    const result = db.prepare(
+      'INSERT INTO dashboards (user_id, name, position) VALUES (?, ?, ?)'
+    ).run(userId, name, position);
+    return { id: result.lastInsertRowid, user_id: userId, name, position, is_default: 0, sort_mode: 'alpha', view_mode: 'kanban' };
+  },
+
+  updateDashboard: (id, userId, updates) => {
+    const fields = [];
+    const values = [];
+    for (const key of ['name', 'sort_mode', 'view_mode']) {
+      if (updates[key] !== undefined) {
+        fields.push(`${key} = ?`);
+        values.push(updates[key]);
+      }
+    }
+    if (fields.length === 0) return;
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id, userId);
+    db.prepare(`UPDATE dashboards SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`).run(...values);
+  },
+
+  deleteDashboard: (id, userId) => {
+    db.prepare('DELETE FROM dashboards WHERE id = ? AND user_id = ?').run(id, userId);
+  },
+
+  reorderDashboards: (userId, dashboardIds) => {
+    const stmt = db.prepare('UPDATE dashboards SET position = ? WHERE id = ? AND user_id = ?');
+    const transaction = db.transaction((ids) => {
+      ids.forEach((id, index) => stmt.run(index, id, userId));
+    });
+    transaction(dashboardIds);
+  },
+
+  setDefaultDashboard: (userId, dashboardId) => {
+    const transaction = db.transaction(() => {
+      db.prepare('UPDATE dashboards SET is_default = 0 WHERE user_id = ?').run(userId);
+      if (dashboardId) {
+        db.prepare('UPDATE dashboards SET is_default = 1 WHERE id = ? AND user_id = ?').run(dashboardId, userId);
+      }
+    });
+    transaction();
+  },
+
+  getDefaultDashboard: (userId) => {
+    return db.prepare(
+      'SELECT id FROM dashboards WHERE user_id = ? AND is_default = 1 LIMIT 1'
+    ).get(userId);
+  },
+
+  // --- Raccoglitori CRUD ---
+
+  getRaccoglitori: (dashboardId) => {
+    return db.prepare(
+      'SELECT id, dashboard_id, parent_id, depth, name, color, icon, notes, position FROM dashboard_raccoglitori WHERE dashboard_id = ? ORDER BY position'
+    ).all(dashboardId);
+  },
+
+  getRaccoglitore: (id) => {
+    return db.prepare(
+      'SELECT id, dashboard_id, parent_id, depth, name, color, icon, notes, position FROM dashboard_raccoglitori WHERE id = ?'
+    ).get(id);
+  },
+
+  getSubtreeDepth: (id) => {
+    const row = db.prepare(`
+      WITH RECURSIVE subtree(id, d) AS (
+        SELECT id, 0 FROM dashboard_raccoglitori WHERE id = ?
+        UNION ALL
+        SELECT r.id, s.d + 1
+        FROM dashboard_raccoglitori r
+        JOIN subtree s ON r.parent_id = s.id
+      )
+      SELECT COALESCE(MAX(d), 0) AS maxDepth FROM subtree
+    `).get(id);
+    return row?.maxDepth ?? 0;
+  },
+
+  isDescendant: (candidateAncestorId, nodeId) => {
+    if (candidateAncestorId === nodeId) return true;
+    const row = db.prepare(`
+      WITH RECURSIVE ancestors(id) AS (
+        SELECT parent_id FROM dashboard_raccoglitori WHERE id = ?
+        UNION ALL
+        SELECT r.parent_id FROM dashboard_raccoglitori r
+        JOIN ancestors a ON r.id = a.id
+        WHERE r.parent_id IS NOT NULL
+      )
+      SELECT 1 AS hit FROM ancestors WHERE id = ? LIMIT 1
+    `).get(nodeId, candidateAncestorId);
+    return !!row;
+  },
+
+  createRaccoglitore: (dashboardId, { name, color = '#3b82f6', icon = 'Folder', notes = '', parent_id = null }) => {
+    let depth = 0;
+    let normalizedParentId = parent_id ?? null;
+    if (normalizedParentId !== null) {
+      const parent = dashboardDb.getRaccoglitore(normalizedParentId);
+      if (!parent) throw new Error('Parent raccoglitore not found');
+      if (parent.dashboard_id !== dashboardId) throw new Error('Parent belongs to a different dashboard');
+      depth = parent.depth + 1;
+    }
+    const maxPos = db.prepare(
+      'SELECT COALESCE(MAX(position), -1) as maxPos FROM dashboard_raccoglitori WHERE dashboard_id = ? AND ((parent_id IS NULL AND ? IS NULL) OR parent_id = ?)'
+    ).get(dashboardId, normalizedParentId, normalizedParentId);
+    const position = (maxPos?.maxPos ?? -1) + 1;
+    const result = db.prepare(
+      'INSERT INTO dashboard_raccoglitori (dashboard_id, parent_id, depth, name, color, icon, notes, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(dashboardId, normalizedParentId, depth, name, color, icon, notes, position);
+    return { id: result.lastInsertRowid, dashboard_id: dashboardId, parent_id: normalizedParentId, depth, name, color, icon, notes, position };
+  },
+
+  updateRaccoglitore: (id, updates) => {
+    const fields = [];
+    const values = [];
+    for (const key of ['name', 'color', 'icon', 'notes']) {
+      if (updates[key] !== undefined) {
+        fields.push(`${key} = ?`);
+        values.push(updates[key]);
+      }
+    }
+    if (fields.length === 0) return;
+    values.push(id);
+    db.prepare(`UPDATE dashboard_raccoglitori SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  },
+
+  moveRaccoglitore: (id, { parent_id = null, position = null } = {}) => {
+    const node = dashboardDb.getRaccoglitore(id);
+    if (!node) throw new Error('Raccoglitore not found');
+    const newParentId = parent_id ?? null;
+    let newParentDepth = -1;
+    if (newParentId !== null) {
+      const parent = dashboardDb.getRaccoglitore(newParentId);
+      if (!parent) throw new Error('Target parent not found');
+      if (parent.dashboard_id !== node.dashboard_id) throw new Error('Cannot move across dashboards');
+      if (dashboardDb.isDescendant(newParentId, id)) throw new Error('Cannot move a raccoglitore under its own descendant');
+      newParentDepth = parent.depth;
+    }
+    const newNodeDepth = newParentDepth + 1;
+    const depthDelta = newNodeDepth - node.depth;
+    const transaction = db.transaction(() => {
+      let finalPosition = position;
+      if (finalPosition === null || finalPosition === undefined) {
+        const maxPos = db.prepare(
+          'SELECT COALESCE(MAX(position), -1) AS maxPos FROM dashboard_raccoglitori WHERE dashboard_id = ? AND ((parent_id IS NULL AND ? IS NULL) OR parent_id = ?) AND id != ?'
+        ).get(node.dashboard_id, newParentId, newParentId, id);
+        finalPosition = (maxPos?.maxPos ?? -1) + 1;
+      }
+      db.prepare('UPDATE dashboard_raccoglitori SET parent_id = ?, depth = ?, position = ? WHERE id = ?')
+        .run(newParentId, newNodeDepth, finalPosition, id);
+      if (depthDelta !== 0) {
+        db.prepare(`
+          WITH RECURSIVE descendants(id) AS (
+            SELECT id FROM dashboard_raccoglitori WHERE parent_id = ?
+            UNION ALL
+            SELECT r.id FROM dashboard_raccoglitori r JOIN descendants d ON r.parent_id = d.id
+          )
+          UPDATE dashboard_raccoglitori SET depth = depth + ? WHERE id IN (SELECT id FROM descendants)
+        `).run(id, depthDelta);
+      }
+    });
+    transaction();
+    return dashboardDb.getRaccoglitore(id);
+  },
+
+  deleteRaccoglitore: (id, { reparent = false } = {}) => {
+    const node = dashboardDb.getRaccoglitore(id);
+    if (!node) return;
+    if (reparent) {
+      const children = db.prepare('SELECT id FROM dashboard_raccoglitori WHERE parent_id = ?').all(id);
+      for (const child of children) {
+        dashboardDb.moveRaccoglitore(child.id, { parent_id: node.parent_id, position: null });
+      }
+    }
+    db.prepare('DELETE FROM dashboard_raccoglitori WHERE id = ?').run(id);
+  },
+
+  reorderRaccoglitori: (dashboardId, raccoglitoreIds) => {
+    const stmt = db.prepare('UPDATE dashboard_raccoglitori SET position = ? WHERE id = ? AND dashboard_id = ?');
+    const transaction = db.transaction((ids) => {
+      ids.forEach((id, index) => stmt.run(index, id, dashboardId));
+    });
+    transaction(raccoglitoreIds);
+  },
+
+  // --- Project assignments ---
+  getAssignments: (dashboardId) => {
+    return db.prepare(`
+      SELECT dpa.id, dpa.raccoglitore_id, dpa.project_name, dpa.position, dpa.is_favorite
+      FROM dashboard_project_assignments dpa
+      JOIN dashboard_raccoglitori dr ON dpa.raccoglitore_id = dr.id
+      WHERE dr.dashboard_id = ?
+      ORDER BY dpa.position
+    `).all(dashboardId);
+  },
+
+  getAllAssignmentsForUser: (userId) => {
+    return db.prepare(`
+      SELECT dpa.id, dpa.raccoglitore_id, dpa.project_name, dpa.position, dpa.is_favorite, dr.dashboard_id
+      FROM dashboard_project_assignments dpa
+      JOIN dashboard_raccoglitori dr ON dpa.raccoglitore_id = dr.id
+      JOIN dashboards d ON dr.dashboard_id = d.id
+      WHERE d.user_id = ?
+      ORDER BY dpa.position
+    `).all(userId);
+  },
+
+  setAssignmentFavorite: (raccoglitoreId, projectName, isFavorite) => {
+    const result = db.prepare(
+      'UPDATE dashboard_project_assignments SET is_favorite = ? WHERE raccoglitore_id = ? AND project_name = ?'
+    ).run(isFavorite ? 1 : 0, raccoglitoreId, projectName);
+    return result.changes > 0;
+  },
+
+  assignProject: (raccoglitoreId, projectName, position = 0) => {
+    db.prepare(`
+      INSERT INTO dashboard_project_assignments (raccoglitore_id, project_name, position)
+      VALUES (?, ?, ?)
+      ON CONFLICT(raccoglitore_id, project_name) DO UPDATE SET position = excluded.position
+    `).run(raccoglitoreId, projectName, position);
+  },
+
+  removeProject: (raccoglitoreId, projectName) => {
+    db.prepare(
+      'DELETE FROM dashboard_project_assignments WHERE raccoglitore_id = ? AND project_name = ?'
+    ).run(raccoglitoreId, projectName);
+  },
+
+  reorderProjects: (raccoglitoreId, projectNames) => {
+    const stmt = db.prepare('UPDATE dashboard_project_assignments SET position = ? WHERE raccoglitore_id = ? AND project_name = ?');
+    const transaction = db.transaction((names) => {
+      names.forEach((name, index) => stmt.run(index, raccoglitoreId, name));
+    });
+    transaction(projectNames);
+  },
+
+  // --- Ownership checks ---
+  dashboardBelongsToUser: (dashboardId, userId) => {
+    const row = db.prepare('SELECT 1 FROM dashboards WHERE id = ? AND user_id = ?').get(dashboardId, userId);
+    return !!row;
+  },
+
+  raccoglitoreBelongsToUser: (raccoglitoreId, userId) => {
+    const row = db.prepare(`
+      SELECT dr.dashboard_id FROM dashboard_raccoglitori dr
+      JOIN dashboards d ON dr.dashboard_id = d.id
+      WHERE dr.id = ? AND d.user_id = ?
+    `).get(raccoglitoreId, userId);
+    return row ? row.dashboard_id : null;
+  },
+
+  // --- Full dashboard load ---
+  getFullDashboard: (dashboardId, userId) => {
+    const dashboard = db.prepare(
+      'SELECT id, user_id, name, position, is_default, sort_mode, view_mode FROM dashboards WHERE id = ? AND user_id = ?'
+    ).get(dashboardId, userId);
+    if (!dashboard) return null;
+
+    const raccoglitori = dashboardDb.getRaccoglitori(dashboardId);
+    const assignments = dashboardDb.getAssignments(dashboardId);
+    return { dashboard, raccoglitori, assignments };
+  },
+
+  // --- Workspace (all dashboards + folders + assignments + orphan favorites) ---
+  getAllRaccoglitoriForUser: (userId) => {
+    return db.prepare(`
+      SELECT dr.id, dr.dashboard_id, dr.parent_id, dr.depth, dr.name, dr.color, dr.icon, dr.notes, dr.position
+      FROM dashboard_raccoglitori dr
+      JOIN dashboards d ON dr.dashboard_id = d.id
+      WHERE d.user_id = ?
+      ORDER BY dr.dashboard_id, dr.position
+    `).all(userId);
+  },
+
+  getWorkspace: (userId) => {
+    const dashboards = dashboardDb.getDashboards(userId);
+    const raccoglitori = dashboardDb.getAllRaccoglitoriForUser(userId);
+    const assignments = dashboardDb.getAllAssignmentsForUser(userId);
+    const favoriteProjectNames = dashboardDb.getFavoriteProjectNames(userId);
+    return { dashboards, raccoglitori, assignments, favoriteProjectNames };
+  },
+
+  // --- Orphan project favorites ---
+  setProjectFavorite: (userId, projectName, isFavorite) => {
+    if (isFavorite) {
+      db.prepare(
+        'INSERT OR IGNORE INTO user_favorite_projects (user_id, project_name) VALUES (?, ?)'
+      ).run(userId, projectName);
+    } else {
+      db.prepare(
+        'DELETE FROM user_favorite_projects WHERE user_id = ? AND project_name = ?'
+      ).run(userId, projectName);
+    }
+  },
+
+  getFavoriteProjectNames: (userId) => {
+    return db.prepare(
+      'SELECT project_name FROM user_favorite_projects WHERE user_id = ?'
+    ).all(userId).map(r => r.project_name);
+  },
+
+  isProjectFavorite: (userId, projectName) => {
+    const row = db.prepare(
+      'SELECT 1 FROM user_favorite_projects WHERE user_id = ? AND project_name = ?'
+    ).get(userId, projectName);
+    return !!row;
+  },
+};
+
 // Backward compatibility - keep old names pointing to new system
 const githubTokensDb = {
   createGithubToken: (userId, tokenName, githubToken, description = null) => {
@@ -626,5 +1237,7 @@ export {
   sessionNamesDb,
   applyCustomSessionNames,
   appConfigDb,
+  kanbanDb,
+  dashboardDb,
   githubTokensDb // Backward compatibility
 };

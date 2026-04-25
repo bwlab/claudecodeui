@@ -22,7 +22,7 @@ export default function WizardProgress({ step }: WizardProgressProps) {
                   currentStep < step
                     ? 'bg-green-500 text-white'
                     : currentStep === step
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-primary text-white'
                       : 'bg-gray-200 text-gray-500 dark:bg-gray-700'
                 }`}
               >

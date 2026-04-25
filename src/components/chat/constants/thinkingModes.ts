@@ -15,7 +15,7 @@ export const thinkingModes = [
     description: 'Basic extended thinking',
     icon: Brain,
     prefix: 'think',
-    color: 'text-blue-600'
+    color: 'text-primary'
   },
   {
     id: 'think-hard',

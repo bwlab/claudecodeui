@@ -133,13 +133,13 @@ function ClaudeMcpServers({
                   )}
 
                   {toolsResult && toolsResult.tools && toolsResult.tools.length > 0 && (
-                    <div className="mt-2 rounded bg-blue-50 p-2 text-xs text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+                    <div className="mt-2 rounded bg-primary/5 p-2 text-xs text-foreground dark:bg-primary/20 dark:text-muted-foreground">
                       <div className="font-medium">
                         {t('mcpServers.tools.title')} {t('mcpServers.tools.count', { count: toolsResult.tools.length })}
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1">
                         {toolsResult.tools.slice(0, 5).map((tool, index) => (
-                          <code key={`${tool.name}-${index}`} className="rounded bg-blue-100 px-1 dark:bg-blue-800">
+                          <code key={`${tool.name}-${index}`} className="rounded bg-primary/10 px-1 dark:bg-primary">
                             {tool.name}
                           </code>
                         ))}

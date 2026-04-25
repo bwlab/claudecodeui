@@ -44,7 +44,7 @@ import pty from 'node-pty';
 import fetch from 'node-fetch';
 import mime from 'mime-types';
 
-import { getProjects, getSessions, renameProject, deleteSession, deleteProject, addProjectManually, extractProjectDirectory, clearProjectDirectoryCache, searchConversations } from './projects.js';
+import { getProjects, getSessions, renameProject, deleteSession, moveClaudeSessionToProject, deleteProject, addProjectManually, extractProjectDirectory, clearProjectDirectoryCache, searchConversations, updateProjectPath } from './projects.js';
 import { queryClaudeSDK, abortClaudeSDKSession, isClaudeSDKSessionActive, getActiveClaudeSDKSessions, resolveToolApproval, getPendingApprovalsForSession, reconnectSessionWriter } from './claude-sdk.js';
 import { spawnCursor, abortCursorSession, isCursorSessionActive, getActiveCursorSessions } from './cursor-cli.js';
 import { queryCodex, abortCodexSession, isCodexSessionActive, getActiveCodexSessions } from './openai-codex.js';
@@ -66,6 +66,16 @@ import codexRoutes from './routes/codex.js';
 import geminiRoutes from './routes/gemini.js';
 import pluginsRoutes from './routes/plugins.js';
 import messagesRoutes from './routes/messages.js';
+import kanbanRoutes from './routes/kanban.js';
+import dashboardRoutes from './routes/dashboards.js';
+import claudeTasksRoutes from './routes/claude-tasks.js';
+import sessionContextRoutes from './routes/session-context.js';
+import projectCommandsRoutes from './routes/project-commands.js';
+import projectSkillsRoutes from './routes/project-skills.js';
+import projectMcpRoutes from './routes/project-mcp.js';
+import projectOpenRoutes from './routes/project-open.js';
+import projectAgentsRoutes from './routes/project-agents.js';
+import projectMemoryRoutes from './routes/project-memory.js';
 import { createNormalizedMessage } from './providers/types.js';
 import { startEnabledPluginServers, stopAllPlugins, getPluginPort } from './utils/plugin-process-manager.js';
 import { initializeDatabase, sessionNamesDb, applyCustomSessionNames } from './database/db.js';
@@ -401,6 +411,18 @@ app.use('/api/plugins', authenticateToken, pluginsRoutes);
 // Unified session messages route (protected)
 app.use('/api/sessions', authenticateToken, messagesRoutes);
 
+// Kanban board routes (protected)
+app.use('/api/kanban', authenticateToken, kanbanRoutes);
+app.use('/api/dashboards', authenticateToken, dashboardRoutes);
+app.use('/api/claude-tasks', authenticateToken, claudeTasksRoutes);
+app.use('/api/session-context', authenticateToken, sessionContextRoutes);
+app.use('/api/project-commands', authenticateToken, projectCommandsRoutes);
+app.use('/api/project-skills', authenticateToken, projectSkillsRoutes);
+app.use('/api/project-mcp', authenticateToken, projectMcpRoutes);
+app.use('/api/project-open', authenticateToken, projectOpenRoutes);
+app.use('/api/project-agents', authenticateToken, projectAgentsRoutes);
+app.use('/api/project-memory', authenticateToken, projectMemoryRoutes);
+
 // Agent API Routes (uses API key authentication)
 app.use('/api/agent', agentRoutes);
 
@@ -525,6 +547,20 @@ app.put('/api/projects/:projectName/rename', authenticateToken, async (req, res)
     }
 });
 
+// Update project path endpoint
+app.put('/api/projects/:projectName/path', authenticateToken, async (req, res) => {
+    try {
+        const { path: newPath } = req.body;
+        if (!newPath) {
+            return res.status(400).json({ error: 'path is required' });
+        }
+        const resolvedPath = await updateProjectPath(req.params.projectName, newPath);
+        res.json({ success: true, path: resolvedPath });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 // Delete session endpoint
 app.delete('/api/projects/:projectName/sessions/:sessionId', authenticateToken, async (req, res) => {
     try {
@@ -537,6 +573,26 @@ app.delete('/api/projects/:projectName/sessions/:sessionId', authenticateToken, 
     } catch (error) {
         console.error(`[API] Error deleting session ${req.params.sessionId}:`, error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Move a Claude session to another project
+app.post('/api/projects/:projectName/sessions/:sessionId/move', authenticateToken, async (req, res) => {
+    try {
+        const { projectName, sessionId } = req.params;
+        const { targetProjectName } = req.body || {};
+        if (typeof targetProjectName !== 'string' || !targetProjectName.trim()) {
+            return res.status(400).json({ error: 'targetProjectName is required' });
+        }
+        if (targetProjectName === projectName) {
+            return res.status(400).json({ error: 'Source and target are the same' });
+        }
+        const result = await moveClaudeSessionToProject(projectName, sessionId, targetProjectName);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error(`[API] Error moving session ${req.params.sessionId}:`, error);
+        const status = /not found/i.test(error.message) ? 404 : /already exists/i.test(error.message) ? 409 : 500;
+        res.status(status).json({ error: error.message });
     }
 });
 

@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Terminal, Wrench, Plug, Code } from 'lucide-react';
 import { useTasksSettings } from '../../../contexts/TasksSettingsContext';
 import { QuickSettingsPanel } from '../../quick-settings-panel';
 import type { ChatInterfaceProps, Provider  } from '../types/types';
@@ -9,8 +10,11 @@ import { useChatSessionState } from '../hooks/useChatSessionState';
 import { useChatRealtimeHandlers } from '../hooks/useChatRealtimeHandlers';
 import { useChatComposerState } from '../hooks/useChatComposerState';
 import { useSessionStore } from '../../../stores/useSessionStore';
+import { authenticatedFetch } from '../../../utils/api';
 import ChatMessagesPane from './subcomponents/ChatMessagesPane';
 import ChatComposer from './subcomponents/ChatComposer';
+import SessionContextPanel from './subcomponents/SessionContextPanel';
+import ProjectSettingsPanel, { type ProjectSettingsTab } from '../../project-settings/view/ProjectSettingsPanel';
 
 
 type PendingViewSession = {
@@ -41,12 +45,15 @@ function ChatInterface({
   sendByCtrlEnter,
   externalMessageUpdate,
   onShowAllTasks,
+  onBackToKanban,
 }: ChatInterfaceProps) {
   const { tasksEnabled, isTaskMasterInstalled } = useTasksSettings();
   const { t } = useTranslation('chat');
 
   const sessionStore = useSessionStore();
   const streamBufferRef = useRef('');
+  const [isContextOpen, setIsContextOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<ProjectSettingsTab | null>(null);
   const streamTimerRef = useRef<number | null>(null);
   const accumulatedStreamRef = useRef('');
   const pendingViewSessionRef = useRef<PendingViewSession | null>(null);
@@ -294,6 +301,52 @@ function ChatInterface({
   return (
     <>
       <div className="flex h-full flex-col">
+        <div className="flex items-center justify-end gap-1 border-b border-border px-4 py-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const res = await authenticatedFetch(`/api/project-open/${encodeURIComponent(selectedProject.name)}/in-ide`, { method: 'POST' });
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    alert(data.error || "Impossibile aprire l'IDE");
+                  }
+                } catch (err) {
+                  alert((err as Error).message);
+                }
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title="Apri nell'IDE"
+            >
+              <Code className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettingsTab('commands')}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title="Comandi di progetto"
+            >
+              <Terminal className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettingsTab('skills')}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title="Skills"
+            >
+              <Wrench className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettingsTab('mcp')}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title="MCP Tools"
+            >
+              <Plug className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
         <ChatMessagesPane
           scrollContainerRef={scrollContainerRef}
           onWheel={handleScroll}
@@ -406,10 +459,43 @@ function ChatInterface({
           })}
           isTextareaExpanded={isTextareaExpanded}
           sendByCtrlEnter={sendByCtrlEnter}
+          onBackToKanban={onBackToKanban}
+          selectedModel={
+            provider === 'cursor' ? cursorModel
+              : provider === 'codex' ? codexModel
+              : provider === 'gemini' ? geminiModel
+              : claudeModel
+          }
+          onModelChange={(modelId) => {
+            if (provider === 'cursor') { setCursorModel(modelId); localStorage.setItem('cursor-model', modelId); }
+            else if (provider === 'codex') { setCodexModel(modelId); localStorage.setItem('codex-model', modelId); }
+            else if (provider === 'gemini') { setGeminiModel(modelId); localStorage.setItem('gemini-model', modelId); }
+            else { setClaudeModel(modelId); localStorage.setItem('claude-model', modelId); }
+          }}
+          currentSessionId={currentSessionId ?? selectedSession?.id}
+          appVersion={import.meta.env.VITE_APP_VERSION as string | undefined}
+          onOpenContext={() => setIsContextOpen(true)}
+          terminalProjectName={selectedProject?.name}
         />
       </div>
 
       <QuickSettingsPanel />
+
+      <SessionContextPanel
+        isOpen={isContextOpen}
+        onClose={() => setIsContextOpen(false)}
+        sessionId={currentSessionId ?? selectedSession?.id ?? null}
+        projectPath={selectedProject?.fullPath || selectedProject?.path || null}
+      />
+
+      <ProjectSettingsPanel
+        isOpen={settingsTab !== null}
+        onClose={() => setSettingsTab(null)}
+        projectName={selectedProject.name}
+        projectDisplayName={selectedProject.displayName}
+        activeTab={settingsTab ?? 'commands'}
+        onChangeTab={(tab) => setSettingsTab(tab)}
+      />
     </>
   );
 }

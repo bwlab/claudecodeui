@@ -10,17 +10,48 @@
  * - SDK format ('sonnet', 'opus') - used by the UI and claude-sdk.js
  * - API format ('claude-sonnet-4.5') - used by slash commands for display
  */
+/**
+ * Returns the context window (in tokens) for a given model id/alias.
+ * Source: https://platform.claude.com/docs/en/about-claude/models/overview
+ * - Opus 4.6: 1M tokens
+ * - Sonnet 4.6: 1M tokens
+ * - Haiku 4.5: 200k tokens
+ */
+export function getContextWindowForModel(model, provider = 'claude') {
+  if (!model) return 200_000;
+  const m = String(model).toLowerCase();
+
+  if (provider === 'claude') {
+    // Esplicito 1M via suffisso [1m]
+    if (m.includes('[1m]')) return 1_000_000;
+    // Haiku is 200k
+    if (m.includes('haiku')) return 200_000;
+    if (m === 'opus' || m === 'sonnet' || m === 'opusplan') return 1_000_000;
+    // Older models or unknown → 200k
+    return 200_000;
+  }
+
+  if (provider === 'gemini') {
+    if (m.includes('pro') || m.includes('flash')) return 1_000_000;
+    return 200_000;
+  }
+
+  return 200_000;
+}
+
 export const CLAUDE_MODELS = {
-  // Models in SDK format (what the actual SDK accepts)
+  // Source of truth: https://platform.claude.com/docs/en/about-claude/models/overview
+  // Aliases ufficiali esposti dall'API Anthropic (GET /v1/models).
   OPTIONS: [
-    { value: "sonnet", label: "Sonnet" },
-    { value: "opus", label: "Opus" },
-    { value: "haiku", label: "Haiku" },
+    { value: "claude-opus-4-7[1m]", label: "Opus 4.7 (1M ctx)" },
+    { value: "claude-sonnet-4-6[1m]", label: "Sonnet 4.6 (1M ctx)" },
+    { value: "claude-opus-4-6[1m]", label: "Opus 4.6 (1M ctx)" },
+    { value: "claude-haiku-4-5", label: "Haiku 4.5 (200k ctx)" },
+    // Special CLI modes
     { value: "opusplan", label: "Opus Plan" },
-    { value: "sonnet[1m]", label: "Sonnet [1M]" },
   ],
 
-  DEFAULT: "sonnet",
+  DEFAULT: "claude-sonnet-4-6[1m]",
 };
 
 /**

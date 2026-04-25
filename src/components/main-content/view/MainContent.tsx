@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import ChatInterface from '../../chat/view/ChatInterface';
+import SessionKanban from '../../session-kanban/view/SessionKanban';
+import ClaudeTasksPanel from '../../claude-tasks/view/ClaudeTasksPanel';
 import FileTree from '../../file-tree/view/FileTree';
 import StandaloneShell from '../../standalone-shell/view/StandaloneShell';
 import GitPanel from '../../git-panel/view/GitPanel';
@@ -30,6 +32,7 @@ type TasksSettingsContextValue = {
 function MainContent({
   selectedProject,
   selectedSession,
+  isNewSession,
   activeTab,
   setActiveTab,
   ws,
@@ -46,8 +49,14 @@ function MainContent({
   processingSessions,
   onReplaceTemporarySession,
   onNavigateToSession,
+  onNewSession,
+  onBackToKanban,
+  onSessionUpdated,
+  onSessionDeleted,
   onShowSettings,
   externalMessageUpdate,
+  projects,
+  onRenameProject,
 }: MainContentProps) {
   const { preferences } = useUiPreferences();
   const { autoExpandTools, showRawParameters, showThinking, autoScrollToBottom, sendByCtrlEnter } = preferences;
@@ -105,36 +114,51 @@ function MainContent({
         shouldShowTasksTab={shouldShowTasksTab}
         isMobile={isMobile}
         onMenuClick={onMenuClick}
+        onBackToKanban={(selectedSession || isNewSession) ? onBackToKanban : undefined}
+        onRenameProject={onRenameProject}
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
+        <>
         <div className={`flex min-h-0 min-w-[200px] flex-col overflow-hidden ${editorExpanded ? 'hidden' : ''} flex-1`}>
           <div className={`h-full ${activeTab === 'chat' ? 'block' : 'hidden'}`}>
             <ErrorBoundary showDetails>
-              <ChatInterface
-                selectedProject={selectedProject}
-                selectedSession={selectedSession}
-                ws={ws}
-                sendMessage={sendMessage}
-                latestMessage={latestMessage}
-                onFileOpen={handleFileOpen}
-                onInputFocusChange={onInputFocusChange}
-                onSessionActive={onSessionActive}
-                onSessionInactive={onSessionInactive}
-                onSessionProcessing={onSessionProcessing}
-                onSessionNotProcessing={onSessionNotProcessing}
-                processingSessions={processingSessions}
-                onReplaceTemporarySession={onReplaceTemporarySession}
-                onNavigateToSession={onNavigateToSession}
-                onShowSettings={onShowSettings}
-                autoExpandTools={autoExpandTools}
-                showRawParameters={showRawParameters}
-                showThinking={showThinking}
-                autoScrollToBottom={autoScrollToBottom}
-                sendByCtrlEnter={sendByCtrlEnter}
-                externalMessageUpdate={externalMessageUpdate}
-                onShowAllTasks={tasksEnabled ? () => setActiveTab('tasks') : null}
-              />
+              {(selectedSession || isNewSession) ? (
+                <ChatInterface
+                  selectedProject={selectedProject}
+                  selectedSession={selectedSession}
+                  ws={ws}
+                  sendMessage={sendMessage}
+                  latestMessage={latestMessage}
+                  onFileOpen={handleFileOpen}
+                  onInputFocusChange={onInputFocusChange}
+                  onSessionActive={onSessionActive}
+                  onSessionInactive={onSessionInactive}
+                  onSessionProcessing={onSessionProcessing}
+                  onSessionNotProcessing={onSessionNotProcessing}
+                  processingSessions={processingSessions}
+                  onReplaceTemporarySession={onReplaceTemporarySession}
+                  onNavigateToSession={onNavigateToSession}
+                  onShowSettings={onShowSettings}
+                  autoExpandTools={autoExpandTools}
+                  showRawParameters={showRawParameters}
+                  showThinking={showThinking}
+                  autoScrollToBottom={autoScrollToBottom}
+                  sendByCtrlEnter={sendByCtrlEnter}
+                  externalMessageUpdate={externalMessageUpdate}
+                  onShowAllTasks={tasksEnabled ? () => setActiveTab('tasks') : null}
+                  onBackToKanban={onBackToKanban}
+                />
+              ) : (
+                <SessionKanban
+                  project={selectedProject!}
+                  onSessionClick={(session) => onNavigateToSession(session.id)}
+                  onNewSession={onNewSession}
+                  onSessionUpdated={onSessionUpdated}
+                  onSessionDeleted={onSessionDeleted}
+                  allProjects={projects}
+                />
+              )}
             </ErrorBoundary>
           </div>
 
@@ -163,6 +187,12 @@ function MainContent({
 
           {shouldShowTasksTab && <TaskMasterPanel isVisible={activeTab === 'tasks'} />}
 
+          {activeTab === 'claude-tasks' && selectedProject && (
+            <div className="h-full overflow-hidden">
+              <ClaudeTasksPanel project={selectedProject} isVisible={activeTab === 'claude-tasks'} />
+            </div>
+          )}
+
           <div className={`h-full overflow-hidden ${activeTab === 'preview' ? 'block' : 'hidden'}`} />
 
           {activeTab.startsWith('plugin:') && (
@@ -176,20 +206,24 @@ function MainContent({
           )}
         </div>
 
-        <EditorSidebar
-          editingFile={editingFile}
-          isMobile={isMobile}
-          editorExpanded={editorExpanded}
-          editorWidth={editorWidth}
-          hasManualWidth={hasManualWidth}
-          resizeHandleRef={resizeHandleRef}
-          onResizeStart={handleResizeStart}
-          onCloseEditor={handleCloseEditor}
-          onToggleEditorExpand={handleToggleEditorExpand}
-          projectPath={selectedProject.path}
-          fillSpace={activeTab === 'files'}
-        />
+        {selectedProject && (
+          <EditorSidebar
+            editingFile={editingFile}
+            isMobile={isMobile}
+            editorExpanded={editorExpanded}
+            editorWidth={editorWidth}
+            hasManualWidth={hasManualWidth}
+            resizeHandleRef={resizeHandleRef}
+            onResizeStart={handleResizeStart}
+            onCloseEditor={handleCloseEditor}
+            onToggleEditorExpand={handleToggleEditorExpand}
+            projectPath={selectedProject.path}
+            fillSpace={activeTab === 'files'}
+          />
+        )}
+        </>
       </div>
+
     </div>
   );
 }

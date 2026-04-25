@@ -1,7 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { LayoutGrid } from 'lucide-react';
+import TerminalLauncher from './TerminalLauncher';
 import type { PermissionMode, Provider } from '../../types/types';
+import { getContextWindowForModel } from '../../../../../shared/modelConstants';
 import ThinkingModeSelector from './ThinkingModeSelector';
+import ModelSelector from './ModelSelector';
 import TokenUsagePie from './TokenUsagePie';
 
 interface ChatInputControlsProps {
@@ -18,6 +22,11 @@ interface ChatInputControlsProps {
   isUserScrolledUp: boolean;
   hasMessages: boolean;
   onScrollToBottom: () => void;
+  onBackToKanban?: () => void;
+  terminalProjectName?: string | null;
+  terminalSessionId?: string | null;
+  selectedModel: string;
+  onModelChange: (modelId: string) => void;
 }
 
 export default function ChatInputControls({
@@ -34,6 +43,11 @@ export default function ChatInputControls({
   isUserScrolledUp,
   hasMessages,
   onScrollToBottom,
+  onBackToKanban,
+  terminalProjectName,
+  terminalSessionId,
+  selectedModel,
+  onModelChange,
 }: ChatInputControlsProps) {
   const { t } = useTranslation('chat');
 
@@ -78,7 +92,9 @@ export default function ChatInputControls({
         <ThinkingModeSelector selectedMode={thinkingMode} onModeChange={setThinkingMode} onClose={() => {}} className="" />
       )}
 
-      <TokenUsagePie used={tokenBudget?.used || 0} total={tokenBudget?.total || parseInt(import.meta.env.VITE_CONTEXT_WINDOW) || 160000} />
+      <ModelSelector provider={provider} selectedModel={selectedModel} onModelChange={onModelChange} />
+
+      <TokenUsagePie used={tokenBudget?.used || 0} total={getContextWindowForModel(selectedModel, provider)} />
 
       <button
         type="button"
@@ -131,6 +147,26 @@ export default function ChatInputControls({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
         </button>
+      )}
+
+      {onBackToKanban && (
+        <button
+          type="button"
+          onClick={onBackToKanban}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground sm:h-8 sm:w-8"
+          title="Kanban"
+        >
+          <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+      )}
+
+      {terminalProjectName && (
+        <TerminalLauncher
+          projectName={terminalProjectName}
+          currentSessionId={terminalSessionId}
+          currentModel={selectedModel}
+          currentPermissionMode={String(permissionMode)}
+        />
       )}
     </div>
   );

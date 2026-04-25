@@ -10,9 +10,9 @@ const providerCards = [
   {
     provider: 'claude' as const,
     title: 'Claude Code',
-    connectedClassName: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
-    iconContainerClassName: 'bg-blue-100 dark:bg-blue-900/30',
-    loginButtonClassName: 'bg-blue-600 hover:bg-blue-700',
+    connectedClassName: 'bg-primary/5 dark:bg-primary/20 border-primary/20 dark:border-primary/20',
+    iconContainerClassName: 'bg-primary/10 dark:bg-primary/30',
+    loginButtonClassName: 'bg-primary hover:bg-primary/90',
   },
   {
     provider: 'cursor' as const,
