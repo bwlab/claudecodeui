@@ -85,6 +85,14 @@ export default function UnifiedShell(props: UnifiedShellProps) {
     [setLocation],
   );
 
+  const handleOpenProjectShellFromTree = useCallback(
+    (project: Project) => {
+      setLocation({ kind: 'project', projectName: project.name });
+      props.onOpenProjectShell?.(project);
+    },
+    [setLocation, props],
+  );
+
   const handleGoToProject = useCallback(
     (projectName: string, folderContext?: { dashboardId: number; folderIds: number[] }) => {
       const project = projects.find((p) => p.name === projectName);
@@ -226,7 +234,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
                 onRenameProject={props.onRenameProject}
                 onDeleteProject={props.onDeleteProject}
                 onDeleteSession={props.onDeleteSession}
-                onOpenProjectShell={props.onOpenProjectShell}
+                onOpenProjectShell={handleOpenProjectShellFromTree}
                 onMoveProject={props.onMoveProject}
                 onAssignProjectToFolder={props.onAssignProjectToFolder}
                 onSelectAgent={handleSelectAgent}
