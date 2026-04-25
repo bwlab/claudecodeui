@@ -33,6 +33,7 @@ interface UnifiedShellProps {
   onOpenTerminal?: (project: Project, sessionId: string, provider: SessionProvider) => void;
   onOpenProjectShell?: (project: Project) => void;
   onOpenSettings?: () => void;
+  onCreateProject?: () => void;
   /** When Location is project|session, the parent passes MainContent here. Otherwise ignored. */
   projectContent?: ReactNode;
   /** Tab bar rendered above the breadcrumb so tabs stay visible across folder/preset views. */
@@ -191,6 +192,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
         isMobile={isMobile}
         onMenuClick={openMobileSidebar}
         onOpenSettings={props.onOpenSettings}
+        onCreateProject={props.onCreateProject}
       />
 
       <div className="relative flex min-h-0 flex-1">

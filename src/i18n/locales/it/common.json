@@ -137,7 +137,11 @@
     "steps": {
       "type": "Tipo",
       "configure": "Configura",
+      "llm": "LLM",
       "confirm": "Conferma"
+    },
+    "stepLlm": {
+      "question": "Quale LLM vuoi avviare nella shell del progetto?"
     },
     "step1": {
       "question": "Hai già un workspace o vuoi crearne uno nuovo?",
@@ -181,6 +185,7 @@
       "existingWorkspace": "Workspace esistente",
       "newWorkspace": "Nuovo workspace",
       "path": "Percorso:",
+      "llm": "LLM:",
       "cloneFrom": "Clona da:",
       "authentication": "Autenticazione:",
       "usingStoredToken": "Uso token salvato:",
@@ -203,6 +208,7 @@
     "errors": {
       "selectType": "Seleziona se hai un workspace esistente o se vuoi crearne uno nuovo",
       "providePath": "Fornisci un percorso workspace",
+      "selectProvider": "Seleziona un LLM",
       "failedToCreate": "Creazione workspace fallita",
       "failedToCreateFolder": "Creazione cartella fallita"
     }

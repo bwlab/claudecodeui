@@ -29,6 +29,8 @@ export interface Tab {
   title: string;
   /** Active inner view (chat/files/shell/git/...). Defaults to kind. */
   viewTab: ViewTab;
+  /** Shell-only: command to run on first connect (e.g., `claude`, `gemini`). */
+  initialCommand?: string;
 }
 
 export interface TabsState {
@@ -114,6 +116,7 @@ export interface OpenTabSpec {
   sessionId?: string;
   provider?: SessionProvider;
   title: string;
+  initialCommand?: string;
 }
 
 /**
@@ -140,6 +143,7 @@ export function openTab(spec: OpenTabSpec): string {
     provider: spec.provider,
     title: spec.title,
     viewTab: spec.kind,
+    initialCommand: spec.initialCommand,
   };
   state = { tabs: [...state.tabs, tab], activeTabId: tab.id };
   emit();

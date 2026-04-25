@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Moon, Sun, Search, Menu, Settings as SettingsIcon } from 'lucide-react';
+import { Moon, Sun, Search, Menu, Settings as SettingsIcon, FolderPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import type { FullWorkspace } from '../../dashboard/types/dashboard';
@@ -13,9 +13,10 @@ interface UnifiedHeaderProps {
   isMobile?: boolean;
   onMenuClick?: () => void;
   onOpenSettings?: () => void;
+  onCreateProject?: () => void;
 }
 
-export default function UnifiedHeader({ projects, workspace, searchQuery, onSearchChange, isMobile, onMenuClick, onOpenSettings }: UnifiedHeaderProps) {
+export default function UnifiedHeader({ projects, workspace, searchQuery, onSearchChange, isMobile, onMenuClick, onOpenSettings, onCreateProject }: UnifiedHeaderProps) {
   const { t } = useTranslation('sidebar');
   const { isDarkMode, toggleDarkMode } = useTheme();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -87,6 +88,17 @@ export default function UnifiedHeader({ projects, workspace, searchQuery, onSear
         <span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">
           {t('header.stats', { projects: projectCount, folders: folderCount })}
         </span>
+        {onCreateProject && (
+          <button
+            type="button"
+            onClick={onCreateProject}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition hover:scale-105 hover:border-[color:var(--heritage-a,#F5D000)] hover:text-[color:var(--heritage-a,#F5D000)]"
+            aria-label={t('header.createProject', { defaultValue: 'Crea nuovo progetto' })}
+            title={t('header.createProject', { defaultValue: 'Crea nuovo progetto' })}
+          >
+            <FolderPlus className="h-4 w-4" />
+          </button>
+        )}
         {onOpenSettings && (
           <button
             type="button"

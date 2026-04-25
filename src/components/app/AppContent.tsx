@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams, useLocation as useRouterLocation } from 'react-router-dom';
 import MainContent from '../main-content/view/MainContent';
 import TabBar from '../main-content/view/TabBar';
@@ -12,6 +12,8 @@ import UnifiedShell from '../unified-sidebar/view/UnifiedShell';
 import { useWorkspace } from '../unified-sidebar/state/useWorkspace';
 import type { AppTab, Project, ProjectSession, SessionProvider } from '../../types/app';
 import Settings from '../settings/view/Settings';
+import ProjectCreationWizard from '../project-creation-wizard';
+import { providerLaunchCommand } from '../project-creation-wizard/utils/providerLaunch';
 import {
   useTabsStore,
   openTab,
@@ -223,12 +225,16 @@ export default function AppContent() {
     if (!project) return;
     const provider = params.provider as SessionProvider | undefined;
     const sessionId = params.sessionId ? decodeURIComponent(params.sessionId) : undefined;
+    // If the URL has no provider, any tab on the project (with same sessionId)
+    // is an acceptable match — otherwise opening a project-only URL while a
+    // shell tab with provider is active would spawn a duplicate chat tab.
+    const providerMatches = (t: Tab) => provider === undefined || t.provider === provider;
     const active = tabs.find((t) => t.id === activeTabId);
     if (
       active &&
       active.projectName === decoded &&
       active.sessionId === sessionId &&
-      active.provider === provider
+      providerMatches(active)
     ) {
       return;
     }
@@ -236,7 +242,7 @@ export default function AppContent() {
       (t) =>
         t.projectName === decoded &&
         t.sessionId === sessionId &&
-        t.provider === provider,
+        providerMatches(t),
     );
     if (existing) {
       activateTab(existing.id);
@@ -335,6 +341,42 @@ export default function AppContent() {
     closeTabAction(activeTabId);
     handleTabClose();
   }, [activeTabId, handleTabClose]);
+
+  // ── Project creation wizard ───────────────────────────────────────────────
+  const [showProjectWizard, setShowProjectWizard] = useState(false);
+
+  const handleOpenProjectWizard = useCallback(() => {
+    setShowProjectWizard(true);
+  }, []);
+
+  const handleProjectCreated = useCallback(
+    async (project: Record<string, unknown> | undefined, provider: SessionProvider) => {
+      const projectName =
+        project && typeof project.name === 'string' ? (project.name as string) : null;
+      // Refresh project lists so the new project is visible everywhere.
+      await refreshProjectsSilently();
+      await reloadWorkspace();
+
+      if (!projectName) return;
+
+      const command = providerLaunchCommand(provider);
+      const titleBase = (project?.displayName as string) || projectName;
+      try {
+        openTab({
+          kind: 'shell',
+          projectName,
+          provider,
+          title: `${titleBase} • ⌘ ${command}`,
+          initialCommand: command,
+        });
+      } catch (e) {
+        alert((e as Error).message);
+        return;
+      }
+      navigateToTab({ projectName });
+    },
+    [navigateToTab, refreshProjectsSilently, reloadWorkspace],
+  );
 
   const handleCreateDashboard = useCallback(async () => {
     const name = window.prompt('Nome della nuova dashboard?');
@@ -719,6 +761,7 @@ export default function AppContent() {
                     selectedSession={session}
                     isNewSession={isNewSession}
                     activeTab={tab.viewTab}
+                    shellCommand={tab.initialCommand ?? null}
                     setActiveTab={makeSetActiveTab(tab.id)}
                     ws={ws}
                     sendMessage={sendMessage}
@@ -786,6 +829,7 @@ export default function AppContent() {
         onOpenTerminal={handleOpenTerminalForSession}
         onOpenProjectShell={handleOpenShellForProject}
         onOpenSettings={() => setShowSettings(true)}
+        onCreateProject={handleOpenProjectWizard}
         projectContent={projectContent}
         tabBarNode={tabBarNode}
         openTabsCount={tabs.length}
@@ -798,6 +842,12 @@ export default function AppContent() {
         projects={projects}
         initialTab={settingsInitialTab}
       />
+      {showProjectWizard && (
+        <ProjectCreationWizard
+          onClose={() => setShowProjectWizard(false)}
+          onProjectCreated={handleProjectCreated}
+        />
+      )}
       <CommandPalette
         projects={projects}
         onProjectSelect={handleProjectSelectFromShell}

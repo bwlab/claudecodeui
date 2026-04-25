@@ -144,6 +144,7 @@
     "closeMenu": "Chiudi menu",
     "searchPlaceholder": "Cerca tra progetti e sessioni (premi /)",
     "settings": "Impostazioni",
+    "createProject": "Crea nuovo progetto",
     "themeLight": "Attiva tema chiaro",
     "themeDark": "Attiva tema scuro",
     "stats": "{{projects}} progetti · {{folders}} cartelle"
