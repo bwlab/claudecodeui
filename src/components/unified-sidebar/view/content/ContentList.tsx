@@ -18,6 +18,7 @@ import ContentToolbar, { type SortMode } from './ContentToolbar';
 import SessionInlineList from './rows/SessionInlineList';
 import AgentViewer from '../../../agents/view/AgentViewer';
 import OpenTabsView from './OpenTabsView';
+import SkillsView from './SkillsView';
 import type { Tab } from '../../../../stores/tabsStore';
 
 interface ContentListProps {
@@ -208,6 +209,10 @@ export default function ContentList(props: ContentListProps) {
         onSelectAgent={(name) => props.onSelectAgent?.('global', name)}
       />
     );
+  }
+
+  if (location.kind === 'preset' && location.preset === 'skills') {
+    return <SkillsView />;
   }
 
   if (location.kind === 'preset' && location.preset === 'open-tabs') {
