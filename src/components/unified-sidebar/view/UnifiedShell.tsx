@@ -34,6 +34,12 @@ interface UnifiedShellProps {
   onOpenSettings?: () => void;
   /** When Location is project|session, the parent passes MainContent here. Otherwise ignored. */
   projectContent?: ReactNode;
+  /** Number of open tabs (drives the "Sessioni aperte" preset badge). */
+  openTabsCount?: number;
+  /** Tabs whose underlying session is currently processing (forwarded to OpenTabsView). */
+  processingTabIds?: Set<string>;
+  /** Activate a tab from OpenTabsView (parent navigates to its URL). */
+  onActivateTab?: (tab: import('../../../stores/tabsStore').Tab) => void;
 }
 
 export default function UnifiedShell(props: UnifiedShellProps) {
@@ -102,7 +108,7 @@ export default function UnifiedShell(props: UnifiedShellProps) {
   );
 
   const presetCounts = useMemo<Partial<Record<PresetKind, number>>>(() => {
-    if (!workspace) return {};
+    if (!workspace) return { 'open-tabs': props.openTabsCount };
     const built = buildUnifiedTree(workspace, projects);
     const nodes = flattenAllProjects(built.dashboards);
     const favoriteCount = nodes.reduce((acc, n) => acc + (n.isFavorite ? 1 : 0), 0);
@@ -111,8 +117,9 @@ export default function UnifiedShell(props: UnifiedShellProps) {
       all: projects.length,
       unassigned: unassignedCount,
       favorites: favoriteCount,
+      'open-tabs': props.openTabsCount,
     };
-  }, [workspace, projects]);
+  }, [workspace, projects, props.openTabsCount]);
 
   const showProjectContent =
     (location.kind === 'project' || location.kind === 'session') && !!projectContent;
@@ -244,6 +251,8 @@ export default function UnifiedShell(props: UnifiedShellProps) {
                 onAssignProjectToFolder={props.onAssignProjectToFolder}
                 onSelectAgent={handleSelectAgent}
                 assignments={workspace?.assignments}
+                processingTabIds={props.processingTabIds}
+                onActivateTab={props.onActivateTab}
               />
             )}
           </div>

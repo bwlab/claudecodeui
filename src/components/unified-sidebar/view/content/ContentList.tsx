@@ -16,6 +16,8 @@ import ClaudeMdViewerDialog from '../dialogs/ClaudeMdViewerDialog';
 import ContentToolbar, { type SortMode } from './ContentToolbar';
 import SessionInlineList from './rows/SessionInlineList';
 import AgentViewer from '../../../agents/view/AgentViewer';
+import OpenTabsView from './OpenTabsView';
+import type { Tab } from '../../../../stores/tabsStore';
 
 interface ContentListProps {
   location: Location;
@@ -34,6 +36,10 @@ interface ContentListProps {
   onOpenProjectShell?: (project: Project) => void;
   onSelectAgent?: (scope: 'global' | 'project', agentName: string, projectName?: string) => void;
   assignments?: FullWorkspace['assignments'];
+  /** Tabs whose underlying session is currently processing (used by OpenTabsView). */
+  processingTabIds?: Set<string>;
+  /** Activate a tab from OpenTabsView (parent navigates to its URL). */
+  onActivateTab?: (tab: Tab) => void;
 }
 
 const RECENT_LIMIT = 100;
@@ -198,6 +204,16 @@ export default function ContentList(props: ContentListProps) {
     return (
       <GlobalAgentsView
         onSelectAgent={(name) => props.onSelectAgent?.('global', name)}
+      />
+    );
+  }
+
+  if (location.kind === 'preset' && location.preset === 'open-tabs') {
+    return (
+      <OpenTabsView
+        projects={props.projects}
+        processingTabIds={props.processingTabIds}
+        onActivate={(tab) => props.onActivateTab?.(tab)}
       />
     );
   }

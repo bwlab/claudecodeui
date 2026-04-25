@@ -1,6 +1,6 @@
 import type { SessionProvider } from '../../../types/app';
 
-export type PresetKind = 'all' | 'recent' | 'unassigned' | 'favorites' | 'global-agents';
+export type PresetKind = 'all' | 'recent' | 'unassigned' | 'favorites' | 'global-agents' | 'open-tabs';
 
 export interface FolderContext {
   dashboardId: number;
@@ -30,9 +30,10 @@ export const PRESET_LABELS: Record<PresetKind, string> = {
   unassigned: 'Senza cartella',
   favorites: 'Preferiti',
   'global-agents': 'Agenti globali',
+  'open-tabs': 'Sessioni aperte',
 };
 
-export const PRESET_VALUES: PresetKind[] = ['all', 'recent', 'unassigned', 'favorites', 'global-agents'];
+export const PRESET_VALUES: PresetKind[] = ['all', 'recent', 'unassigned', 'favorites', 'global-agents', 'open-tabs'];
 
 export const isPresetKind = (v: unknown): v is PresetKind =>
   typeof v === 'string' && (PRESET_VALUES as string[]).includes(v);

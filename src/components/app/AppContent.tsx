@@ -782,6 +782,9 @@ export default function AppContent() {
         onOpenProjectShell={handleOpenShellForProject}
         onOpenSettings={() => setShowSettings(true)}
         projectContent={projectContent}
+        openTabsCount={tabs.length}
+        processingTabIds={processingTabIds}
+        onActivateTab={handleTabActivate}
       />
       <Settings
         isOpen={showSettings}

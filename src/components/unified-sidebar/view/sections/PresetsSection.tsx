@@ -1,4 +1,4 @@
-import { Layers, Clock, Inbox, Star, Bot } from 'lucide-react';
+import { Layers, Clock, Inbox, Star, Bot, Activity } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { Location, PresetKind } from '../../types/location';
 import { PRESET_LABELS } from '../../types/location';
@@ -15,9 +15,10 @@ const PRESET_ICONS: Record<PresetKind, ComponentType<{ className?: string }>> = 
   unassigned: Inbox,
   favorites: Star,
   'global-agents': Bot,
+  'open-tabs': Activity,
 };
 
-const PRESET_ORDER: PresetKind[] = ['all', 'recent', 'unassigned', 'favorites', 'global-agents'];
+const PRESET_ORDER: PresetKind[] = ['all', 'recent', 'unassigned', 'favorites', 'global-agents', 'open-tabs'];
 
 export default function PresetsSection({ location, onSelect, counts }: PresetsSectionProps) {
   const activePreset = location.kind === 'preset' ? location.preset : null;
