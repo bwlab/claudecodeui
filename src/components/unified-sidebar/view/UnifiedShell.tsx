@@ -219,9 +219,14 @@ export default function UnifiedShell(props: UnifiedShellProps) {
           />
 
           <div className="flex min-h-0 flex-1 flex-col">
-            {showProjectContent ? (
-              projectContent
-            ) : (
+            {/* Tabs area is always mounted (display:none when sidebar location is folder/preset)
+                so per-tab MainContent state — chat scroll, shell PTY — survives across navigations. */}
+            {projectContent && (
+              <div className={`min-h-0 flex-1 flex-col ${showProjectContent ? 'flex' : 'hidden'}`}>
+                {projectContent}
+              </div>
+            )}
+            {!showProjectContent && (
               <ContentList
                 location={location}
                 workspace={workspace}
